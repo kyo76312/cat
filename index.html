@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
   <title>Hero Survival Shooter</title>
   <style>
     :root{
@@ -10,7 +10,6 @@
       --panel:rgba(0,0,0,.45);
       --txt:#eaf2ff;
       --joy:128px;
-      --btn:92px;
     }
     *{box-sizing:border-box}
     html,body{
@@ -40,12 +39,6 @@
       background:rgba(255,255,255,.24);border:2px solid rgba(255,255,255,.35);
       transform:translate(0,0);
     }
-    #fire{
-      position:absolute;right:16px;bottom:16px;width:var(--btn);height:var(--btn);
-      border-radius:50%;display:flex;align-items:center;justify-content:center;
-      background:rgba(255,80,80,.3);border:2px solid rgba(255,255,255,.32);
-      color:#fff;font-weight:700;font-size:18px;pointer-events:auto;touch-action:none;
-    }
     #over{
       position:fixed;inset:0;display:none;z-index:30;align-items:center;justify-content:center;
       background:rgba(0,0,0,.62);touch-action:none;
@@ -63,15 +56,16 @@
 </head>
 <body>
   <canvas id="game"></canvas>
+
   <div id="hud">
     <div id="hp">HP: 100</div>
     <div id="score">Score: 0</div>
     <div id="time">Time: 0.0s</div>
+    <div id="bulletLv">Bullet Lines: 1</div>
   </div>
 
   <div id="controls">
     <div id="joy"><div id="knob"></div></div>
-    <div id="fire">FIRE</div>
   </div>
 
   <div id="over">
@@ -83,216 +77,375 @@
   </div>
 
   <script>
-    const canvas = document.getElementById("game"), ctx = canvas.getContext("2d");
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
     ctx.imageSmoothingEnabled = false;
-    const hpEl = document.getElementById("hp"), scoreEl = document.getElementById("score"), timeEl = document.getElementById("time");
-    const overEl = document.getElementById("over"), resultEl = document.getElementById("result"), restartBtn = document.getElementById("restart");
-    const joyEl = document.getElementById("joy"), knobEl = document.getElementById("knob"), fireBtn = document.getElementById("fire");
 
-    const heroImg = new Image(), slimeImg = new Image(), bulletImg = new Image();
+    const hpEl = document.getElementById("hp");
+    const scoreEl = document.getElementById("score");
+    const timeEl = document.getElementById("time");
+    const bulletLvEl = document.getElementById("bulletLv");
+    const overEl = document.getElementById("over");
+    const resultEl = document.getElementById("result");
+    const restartBtn = document.getElementById("restart");
+    const joyEl = document.getElementById("joy");
+    const knobEl = document.getElementById("knob");
+
+    const heroImg = new Image();
+    const slimeImg = new Image();
+    const bulletImg = new Image();
     heroImg.src = "assets/hero.png";
     slimeImg.src = "assets/slime.png";
     bulletImg.src = "assets/bullet.png";
 
     const state = {
-      player:null, bullets:[], slimes:[], particles:[],
-      score:0, t:0, spawnTimer:0, over:false, fireHold:false
+      player: null,
+      bullets: [],
+      enemies: [],
+      powerups: [],
+      score: 0,
+      t: 0,
+      spawnTimer: 0,
+      bossTimer: 10,
+      bossCount: 0,
+      over: false
     };
-    const input = {x:0,y:0};
-    let last = 0, joyId = null, joyCenter={x:0,y:0}, joyR=40;
 
-    function resize(){ canvas.width = innerWidth; canvas.height = innerHeight; refreshJoy(); }
-    addEventListener("resize", resize); resize();
+    const input = { x: 0, y: 0 };
+    let joyId = null;
+    let joyCenter = { x: 0, y: 0 };
+    let joyR = 40;
+    let last = 0;
 
-    document.addEventListener("touchstart", e => e.preventDefault(), {passive:false});
-    document.addEventListener("touchmove", e => e.preventDefault(), {passive:false});
+    function resize() {
+      canvas.width = innerWidth;
+      canvas.height = innerHeight;
+      refreshJoy();
+    }
+    addEventListener("resize", resize);
+    resize();
 
-    class Player{
-      constructor(){
-        this.x = canvas.width * 0.5; this.y = canvas.height * 0.78;
-        this.r = 12; this.hp = 100; this.speed = 250;
+    document.addEventListener("touchstart", e => e.preventDefault(), { passive: false });
+    document.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
+
+    class Player {
+      constructor() {
+        this.x = canvas.width * 0.5;
+        this.y = canvas.height * 0.78;
+        this.r = 12;
+        this.hp = 100;
+        this.speed = 255;
         this.fireCd = 0;
+        this.fireInterval = 0.1; // 自動連發
+        this.bulletLines = 1;
       }
-      update(dt){
+
+      update(dt) {
         const nx = this.x + input.x * this.speed * dt;
         const ny = this.y + input.y * this.speed * dt;
         this.x = Math.max(this.r, Math.min(canvas.width - this.r, nx));
         this.y = Math.max(this.r, Math.min(canvas.height - this.r, ny));
+
         if (this.fireCd > 0) this.fireCd -= dt;
-        if (state.fireHold && this.fireCd <= 0) {
-          this.fireCd = 0.13;
-          state.bullets.push({x:this.x, y:this.y-14, vx:0, vy:-560, r:5, dmg:1});
+        if (this.fireCd <= 0 && !state.over) {
+          this.fireCd = this.fireInterval;
+          this.shoot();
         }
       }
-      draw(){
+
+      shoot() {
+        const count = this.bulletLines;
+        const gap = 14;
+        const center = (count - 1) / 2;
+        for (let i = 0; i < count; i++) {
+          const offset = (i - center) * gap;
+          state.bullets.push({
+            x: this.x + offset,
+            y: this.y - 14,
+            vx: 0,
+            vy: -620,
+            r: 5,
+            dmg: 1
+          });
+        }
+      }
+
+      draw() {
         const s = 28;
-        if (heroImg.complete && heroImg.naturalWidth) ctx.drawImage(heroImg, this.x-s/2, this.y-s/2, s, s);
-        else { ctx.fillStyle="#6ed3ff"; ctx.fillRect(this.x-10,this.y-10,20,20); }
+        if (heroImg.complete && heroImg.naturalWidth) {
+          ctx.drawImage(heroImg, this.x - s / 2, this.y - s / 2, s, s);
+        } else {
+          ctx.fillStyle = "#6ed3ff";
+          ctx.fillRect(this.x - 10, this.y - 10, 20, 20);
+        }
       }
     }
 
-    class Slime{
-      constructor(power){
-        this.r = 12;
-        this.x = Math.random() * (canvas.width - 24) + 12;
-        this.y = -18 - Math.random()*80;
-        this.baseVy = 52 + power*26 + Math.random()*46;
-        this.hp = 1 + Math.floor(power * 0.55); // 後期會變硬
-        this.touchCd = 0;
+    class Enemy {
+      constructor(isBoss, diff) {
+        this.isBoss = isBoss;
+        this.x = Math.random() * (canvas.width - 30) + 15;
+        this.y = -30 - Math.random() * 90;
+
+        if (isBoss) {
+          state.bossCount += 1;
+          const k = state.bossCount;
+          const scale = 1 + k * 0.2; // 每次更大
+          this.r = 18 * scale;
+          this.hp = Math.floor(20 + k * 16 + diff * 40);
+          this.speed = 120 + k * 6 + diff * 80;
+          this.reward = true;
+        } else {
+          this.r = 12;
+          this.hp = 1 + Math.floor(diff * 3.5 + state.t / 30); // 小怪 HP 成長
+          this.speed = 90 + diff * 120 + Math.random() * 70;
+          this.reward = false;
+        }
       }
-      update(dt){
+
+      update(dt) {
         const dx = state.player.x - this.x;
-        const homing = Math.max(-1, Math.min(1, dx / 150));
-        this.x += homing * (65 + state.t*0.4) * dt;
-        this.y += this.baseVy * dt;
-        if (this.touchCd > 0) this.touchCd -= dt;
+        const homing = Math.max(-1, Math.min(1, dx / 140));
+        this.x += homing * (85 + state.t * 0.35 + (this.isBoss ? 50 : 0)) * dt;
+        this.y += this.speed * dt;
       }
-      draw(){
-        const s = 26;
-        if (slimeImg.complete && slimeImg.naturalWidth) ctx.drawImage(slimeImg, this.x-s/2, this.y-s/2, s, s);
-        else { ctx.fillStyle="#82ff9a"; ctx.fillRect(this.x-10,this.y-10,20,20); }
+
+      draw() {
+        const size = this.r * 2.15;
+        if (slimeImg.complete && slimeImg.naturalWidth) {
+          ctx.drawImage(slimeImg, this.x - size / 2, this.y - size / 2, size, size);
+        } else {
+          ctx.fillStyle = this.isBoss ? "#ff8f8f" : "#82ff9a";
+          ctx.fillRect(this.x - this.r, this.y - this.r, this.r * 2, this.r * 2);
+        }
+
+        // 血條
+        const maxHp = this.isBoss ? Math.max(20, this.hp) : Math.max(2, this.hp);
+        const w = this.isBoss ? 52 : 24;
+        const ratio = Math.max(0, Math.min(1, this.hp / maxHp));
+        ctx.fillStyle = "#000";
+        ctx.fillRect(this.x - w / 2, this.y - this.r - 10, w, 4);
+        ctx.fillStyle = this.isBoss ? "#ff5252" : "#88ff88";
+        ctx.fillRect(this.x - w / 2, this.y - this.r - 10, w * ratio, 4);
       }
     }
 
-    function spawnSlimes(dt){
+    function spawnEnemy(dt) {
       state.spawnTimer -= dt;
-      const diff = Math.min(1, state.t / 120);           // 2分鐘拉滿
-      const interval = 0.78 - diff * 0.62;               // 0.78 -> 0.16
-      const batch = 1 + Math.floor(state.t / 22);        // 時間越久一次出更多
-      if (state.spawnTimer <= 0){
+      state.bossTimer -= dt;
+
+      const diff = Math.min(1.5, state.t / 75); // 75 秒後已很硬
+      const interval = Math.max(0.07, 0.55 - diff * 0.35); // 怪大量增加
+      const batch = 2 + Math.floor(state.t / 14); // 每波數量越來越大
+
+      if (state.spawnTimer <= 0) {
         state.spawnTimer = interval;
-        for(let i=0;i<batch;i++) state.slimes.push(new Slime(diff * 3.2));
+        for (let i = 0; i < batch; i++) state.enemies.push(new Enemy(false, diff));
+      }
+
+      if (state.bossTimer <= 0) {
+        state.bossTimer = 10;
+        state.enemies.push(new Enemy(true, diff));
       }
     }
 
-    function hitCircle(a,b){ const dx=a.x-b.x, dy=a.y-b.y, rr=(a.r+b.r); return dx*dx+dy*dy<=rr*rr; }
+    function hitCircle(a, b) {
+      const dx = a.x - b.x;
+      const dy = a.y - b.y;
+      const rr = a.r + b.r;
+      return dx * dx + dy * dy <= rr * rr;
+    }
 
-    function update(dt){
+    function spawnPowerup(x, y) {
+      state.powerups.push({
+        x, y, r: 18, ttl: 12, text: "POWERUP"
+      });
+    }
+
+    function update(dt) {
       if (state.over) return;
       state.t += dt;
       state.player.update(dt);
-      spawnSlimes(dt);
+      spawnEnemy(dt);
 
-      for (const b of state.bullets){ b.x += b.vx*dt; b.y += b.vy*dt; }
-      state.bullets = state.bullets.filter(b => b.y > -30);
+      for (const b of state.bullets) {
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+      }
+      state.bullets = state.bullets.filter(b => b.y > -40);
 
-      for (const s of state.slimes){
-        s.update(dt);
-        if (s.y > canvas.height + 26) {
-          // 漏怪小懲罰，增加壓力
-          state.player.hp -= 2;
-          s.hp = 0;
+      for (const e of state.enemies) {
+        e.update(dt);
+        if (e.y > canvas.height + e.r + 20) {
+          state.player.hp -= e.isBoss ? 14 : 3; // 漏怪懲罰
+          e.hp = 0;
         }
       }
 
-      // 子彈打怪
-      for (const b of state.bullets){
-        for (const s of state.slimes){
-          if (s.hp > 0 && hitCircle(b,s)) {
-            s.hp -= b.dmg; b.y = -99;
-            if (s.hp <= 0) state.score += 1;
+      // 子彈打敵人
+      for (const b of state.bullets) {
+        for (const e of state.enemies) {
+          if (e.hp > 0 && hitCircle(b, e)) {
+            e.hp -= b.dmg;
+            b.y = -999;
+            if (e.hp <= 0) {
+              state.score += e.isBoss ? 20 : 1;
+              if (e.reward) spawnPowerup(e.x, e.y);
+            }
             break;
           }
         }
       }
 
-      // 怪碰玩家
-      for (const s of state.slimes){
-        if (s.hp > 0 && hitCircle(s, state.player) && s.touchCd <= 0){
-          s.touchCd = 0.4;
-          state.player.hp -= 9;
+      // 敵人碰撞玩家
+      for (const e of state.enemies) {
+        if (e.hp > 0 && hitCircle(e, state.player)) {
+          state.player.hp -= e.isBoss ? 20 : 8;
+          e.hp = 0;
+          if (e.reward) spawnPowerup(e.x, e.y);
         }
       }
 
-      state.slimes = state.slimes.filter(s => s.hp > 0);
-      if (state.player.hp <= 0) gameOver();
+      // 更新 POWERUP
+      for (const p of state.powerups) {
+        p.y += 16 * dt;
+        p.ttl -= dt;
+        if (hitCircle(p, state.player)) {
+          state.player.bulletLines += 2; // 每次+2排
+          p.ttl = -1;
+        }
+      }
+      state.powerups = state.powerups.filter(p => p.ttl > 0);
+
+      state.enemies = state.enemies.filter(e => e.hp > 0);
+
+      if (state.player.hp <= 0) {
+        state.player.hp = 0;
+        gameOver();
+      }
     }
 
-    function drawBackground(){
+    function drawBackground() {
       ctx.fillStyle = "#0c1220";
-      ctx.fillRect(0,0,canvas.width,canvas.height);
-      ctx.fillStyle = "rgba(255,255,255,.17)";
-      for (let i=0;i<55;i++){
-        const y = (i*37 + (state.t*120)%canvas.height) % canvas.height;
-        const x = (i*73) % canvas.width;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "rgba(255,255,255,.18)";
+      for (let i = 0; i < 65; i++) {
+        const y = (i * 31 + (state.t * 160) % canvas.height) % canvas.height;
+        const x = (i * 71) % canvas.width;
         ctx.fillRect(x, y, 2, 2);
       }
     }
 
-    function draw(){
+    function draw() {
       drawBackground();
-      for (const b of state.bullets){
+
+      // bullets
+      for (const b of state.bullets) {
         const s = 12;
-        if (bulletImg.complete && bulletImg.naturalWidth) ctx.drawImage(bulletImg, b.x-s/2, b.y-s/2, s, s);
-        else { ctx.fillStyle="#ffe57d"; ctx.fillRect(b.x-2,b.y-6,4,12); }
+        if (bulletImg.complete && bulletImg.naturalWidth) {
+          ctx.drawImage(bulletImg, b.x - s / 2, b.y - s / 2, s, s);
+        } else {
+          ctx.fillStyle = "#ffe57d";
+          ctx.fillRect(b.x - 2, b.y - 6, 4, 12);
+        }
       }
-      for (const s of state.slimes) s.draw();
+
+      // enemies
+      for (const e of state.enemies) e.draw();
       state.player.draw();
 
-      hpEl.textContent = "HP: " + Math.max(0, Math.ceil(state.player.hp));
+      // powerup text
+      for (const p of state.powerups) {
+        ctx.fillStyle = "#ffd94a";
+        ctx.font = "bold 16px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText(p.text, p.x, p.y);
+      }
+
+      hpEl.textContent = "HP: " + Math.ceil(state.player.hp);
       scoreEl.textContent = "Score: " + state.score;
       timeEl.textContent = "Time: " + state.t.toFixed(1) + "s";
+      bulletLvEl.textContent = "Bullet Lines: " + state.player.bulletLines;
     }
 
-    function gameOver(){
+    function gameOver() {
       state.over = true;
       overEl.style.display = "flex";
       resultEl.textContent = `生存 ${state.t.toFixed(1)} 秒 / 擊殺 ${state.score} 隻`;
     }
 
-    function reset(){
+    function reset() {
       state.player = new Player();
-      state.bullets = []; state.slimes = []; state.particles = [];
-      state.score = 0; state.t = 0; state.spawnTimer = 0; state.over = false; state.fireHold = false;
+      state.bullets = [];
+      state.enemies = [];
+      state.powerups = [];
+      state.score = 0;
+      state.t = 0;
+      state.spawnTimer = 0;
+      state.bossTimer = 10;
+      state.bossCount = 0;
+      state.over = false;
+
+      input.x = 0;
+      input.y = 0;
+      knobEl.style.transform = "translate(0,0)";
       overEl.style.display = "none";
-      input.x = 0; input.y = 0; knobEl.style.transform = "translate(0,0)";
     }
 
-    function loop(ts){
-      const dt = Math.min(0.033, (ts-last)/1000 || 0.016); last = ts;
-      update(dt); draw();
+    function loop(ts) {
+      const dt = Math.min(0.033, (ts - last) / 1000 || 0.016);
+      last = ts;
+      update(dt);
+      draw();
       requestAnimationFrame(loop);
     }
 
-    function refreshJoy(){
+    function refreshJoy() {
       const r = joyEl.getBoundingClientRect();
-      joyCenter.x = r.left + r.width/2; joyCenter.y = r.top + r.height/2;
+      joyCenter.x = r.left + r.width / 2;
+      joyCenter.y = r.top + r.height / 2;
       joyR = r.width * 0.36;
     }
 
-    function joyMove(t){
-      const dx = t.clientX - joyCenter.x, dy = t.clientY - joyCenter.y;
-      const len = Math.hypot(dx,dy) || 1, c = Math.min(len, joyR);
-      const nx = dx/len, ny = dy/len;
-      input.x = nx * (c/joyR); input.y = ny * (c/joyR);
-      knobEl.style.transform = `translate(${nx*c}px, ${ny*c}px)`;
+    function joyMove(t) {
+      const dx = t.clientX - joyCenter.x;
+      const dy = t.clientY - joyCenter.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const c = Math.min(len, joyR);
+      const nx = dx / len;
+      const ny = dy / len;
+      input.x = nx * (c / joyR);
+      input.y = ny * (c / joyR);
+      knobEl.style.transform = `translate(${nx * c}px, ${ny * c}px)`;
     }
 
     joyEl.addEventListener("touchstart", e => {
       if (joyId !== null || state.over) return;
-      joyId = e.changedTouches[0].identifier; joyMove(e.changedTouches[0]);
-    }, {passive:false});
+      joyId = e.changedTouches[0].identifier;
+      joyMove(e.changedTouches[0]);
+    }, { passive: false });
 
     joyEl.addEventListener("touchmove", e => {
       if (joyId === null) return;
       for (const t of e.changedTouches) if (t.identifier === joyId) joyMove(t);
-    }, {passive:false});
+    }, { passive: false });
 
-    function joyEnd(e){
+    function joyEnd(e) {
       if (joyId === null) return;
-      for (const t of e.changedTouches){
-        if (t.identifier === joyId){
-          joyId = null; input.x=0; input.y=0; knobEl.style.transform="translate(0,0)";
+      for (const t of e.changedTouches) {
+        if (t.identifier === joyId) {
+          joyId = null;
+          input.x = 0;
+          input.y = 0;
+          knobEl.style.transform = "translate(0,0)";
+          break;
         }
       }
     }
-    joyEl.addEventListener("touchend", joyEnd, {passive:false});
-    joyEl.addEventListener("touchcancel", joyEnd, {passive:false});
+    joyEl.addEventListener("touchend", joyEnd, { passive: false });
+    joyEl.addEventListener("touchcancel", joyEnd, { passive: false });
 
-    fireBtn.addEventListener("touchstart", () => { if (!state.over) state.fireHold = true; }, {passive:false});
-    fireBtn.addEventListener("touchend", () => state.fireHold = false, {passive:false});
-    fireBtn.addEventListener("touchcancel", () => state.fireHold = false, {passive:false});
-    restartBtn.addEventListener("touchstart", reset, {passive:false});
+    restartBtn.addEventListener("touchstart", reset, { passive: false });
     restartBtn.addEventListener("click", reset);
 
     reset();
