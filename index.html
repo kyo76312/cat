@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Hero Survival Shooter</title>
+  <style>
+    :root{
+      --bg:#0b0f16;
+      --panel:rgba(0,0,0,.45);
+      --txt:#eaf2ff;
+      --joy:128px;
+      --btn:92px;
+    }
+    *{box-sizing:border-box}
+    html,body{
+      margin:0;width:100%;height:100%;
+      overflow:hidden;touch-action:none;
+      background:var(--bg);color:var(--txt);
+      font-family:monospace;user-select:none;-webkit-user-select:none;
+    }
+    canvas{
+      display:block;width:100vw;height:100vh;
+      image-rendering:pixelated;image-rendering:crisp-edges;
+      background:linear-gradient(#0b0f16,#111a2a);
+    }
+    #hud{
+      position:fixed;left:10px;top:10px;z-index:10;
+      background:var(--panel);padding:8px 10px;border-radius:8px;font-size:14px;line-height:1.4;
+    }
+    #controls{position:fixed;inset:0;pointer-events:none;z-index:20}
+    #joy{
+      position:absolute;left:14px;bottom:14px;width:var(--joy);height:var(--joy);border-radius:50%;
+      background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.2);
+      pointer-events:auto;touch-action:none;
+    }
+    #knob{
+      position:absolute;left:calc(50% - 25px);top:calc(50% - 25px);
+      width:50px;height:50px;border-radius:50%;
+      background:rgba(255,255,255,.24);border:2px solid rgba(255,255,255,.35);
+      transform:translate(0,0);
+    }
+    #fire{
+      position:absolute;right:16px;bottom:16px;width:var(--btn);height:var(--btn);
+      border-radius:50%;display:flex;align-items:center;justify-content:center;
+      background:rgba(255,80,80,.3);border:2px solid rgba(255,255,255,.32);
+      color:#fff;font-weight:700;font-size:18px;pointer-events:auto;touch-action:none;
+    }
+    #over{
+      position:fixed;inset:0;display:none;z-index:30;align-items:center;justify-content:center;
+      background:rgba(0,0,0,.62);touch-action:none;
+    }
+    #card{
+      width:min(320px,86vw);background:#171d2b;border:2px solid #2a3348;border-radius:12px;
+      padding:20px;text-align:center;
+    }
+    #card h1{margin:0 0 12px;color:#ff7d7d}
+    #restart{
+      width:100%;padding:12px;border:0;border-radius:8px;background:#2fbf72;color:#fff;
+      font-size:18px;font-weight:700;touch-action:none;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="hud">
+    <div id="hp">HP: 100</div>
+    <div id="score">Score: 0</div>
+    <div id="time">Time: 0.0s</div>
+  </div>
+
+  <div id="controls">
+    <div id="joy"><div id="knob"></div></div>
+    <div id="fire">FIRE</div>
+  </div>
+
+  <div id="over">
+    <div id="card">
+      <h1>GAME OVER</h1>
+      <div id="result" style="margin-bottom:12px"></div>
+      <button id="restart">重新開始</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game"), ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+    const hpEl = document.getElementById("hp"), scoreEl = document.getElementById("score"), timeEl = document.getElementById("time");
+    const overEl = document.getElementById("over"), resultEl = document.getElementById("result"), restartBtn = document.getElementById("restart");
+    const joyEl = document.getElementById("joy"), knobEl = document.getElementById("knob"), fireBtn = document.getElementById("fire");
+
+    const heroImg = new Image(), slimeImg = new Image(), bulletImg = new Image();
+    heroImg.src = "assets/hero.png";
+    slimeImg.src = "assets/slime.png";
+    bulletImg.src = "assets/bullet.png";
+
+    const state = {
+      player:null, bullets:[], slimes:[], particles:[],
+      score:0, t:0, spawnTimer:0, over:false, fireHold:false
+    };
+    const input = {x:0,y:0};
+    let last = 0, joyId = null, joyCenter={x:0,y:0}, joyR=40;
+
+    function resize(){ canvas.width = innerWidth; canvas.height = innerHeight; refreshJoy(); }
+    addEventListener("resize", resize); resize();
+
+    document.addEventListener("touchstart", e => e.preventDefault(), {passive:false});
+    document.addEventListener("touchmove", e => e.preventDefault(), {passive:false});
+
+    class Player{
+      constructor(){
+        this.x = canvas.width * 0.5; this.y = canvas.height * 0.78;
+        this.r = 12; this.hp = 100; this.speed = 250;
+        this.fireCd = 0;
+      }
+      update(dt){
+        const nx = this.x + input.x * this.speed * dt;
+        const ny = this.y + input.y * this.speed * dt;
+        this.x = Math.max(this.r, Math.min(canvas.width - this.r, nx));
+        this.y = Math.max(this.r, Math.min(canvas.height - this.r, ny));
+        if (this.fireCd > 0) this.fireCd -= dt;
+        if (state.fireHold && this.fireCd <= 0) {
+          this.fireCd = 0.13;
+          state.bullets.push({x:this.x, y:this.y-14, vx:0, vy:-560, r:5, dmg:1});
+        }
+      }
+      draw(){
+        const s = 28;
+        if (heroImg.complete && heroImg.naturalWidth) ctx.drawImage(heroImg, this.x-s/2, this.y-s/2, s, s);
+        else { ctx.fillStyle="#6ed3ff"; ctx.fillRect(this.x-10,this.y-10,20,20); }
+      }
+    }
+
+    class Slime{
+      constructor(power){
+        this.r = 12;
+        this.x = Math.random() * (canvas.width - 24) + 12;
+        this.y = -18 - Math.random()*80;
+        this.baseVy = 52 + power*26 + Math.random()*46;
+        this.hp = 1 + Math.floor(power * 0.55); // 後期會變硬
+        this.touchCd = 0;
+      }
+      update(dt){
+        const dx = state.player.x - this.x;
+        const homing = Math.max(-1, Math.min(1, dx / 150));
+        this.x += homing * (65 + state.t*0.4) * dt;
+        this.y += this.baseVy * dt;
+        if (this.touchCd > 0) this.touchCd -= dt;
+      }
+      draw(){
+        const s = 26;
+        if (slimeImg.complete && slimeImg.naturalWidth) ctx.drawImage(slimeImg, this.x-s/2, this.y-s/2, s, s);
+        else { ctx.fillStyle="#82ff9a"; ctx.fillRect(this.x-10,this.y-10,20,20); }
+      }
+    }
+
+    function spawnSlimes(dt){
+      state.spawnTimer -= dt;
+      const diff = Math.min(1, state.t / 120);           // 2分鐘拉滿
+      const interval = 0.78 - diff * 0.62;               // 0.78 -> 0.16
+      const batch = 1 + Math.floor(state.t / 22);        // 時間越久一次出更多
+      if (state.spawnTimer <= 0){
+        state.spawnTimer = interval;
+        for(let i=0;i<batch;i++) state.slimes.push(new Slime(diff * 3.2));
+      }
+    }
+
+    function hitCircle(a,b){ const dx=a.x-b.x, dy=a.y-b.y, rr=(a.r+b.r); return dx*dx+dy*dy<=rr*rr; }
+
+    function update(dt){
+      if (state.over) return;
+      state.t += dt;
+      state.player.update(dt);
+      spawnSlimes(dt);
+
+      for (const b of state.bullets){ b.x += b.vx*dt; b.y += b.vy*dt; }
+      state.bullets = state.bullets.filter(b => b.y > -30);
+
+      for (const s of state.slimes){
+        s.update(dt);
+        if (s.y > canvas.height + 26) {
+          // 漏怪小懲罰，增加壓力
+          state.player.hp -= 2;
+          s.hp = 0;
+        }
+      }
+
+      // 子彈打怪
+      for (const b of state.bullets){
+        for (const s of state.slimes){
+          if (s.hp > 0 && hitCircle(b,s)) {
+            s.hp -= b.dmg; b.y = -99;
+            if (s.hp <= 0) state.score += 1;
+            break;
+          }
+        }
+      }
+
+      // 怪碰玩家
+      for (const s of state.slimes){
+        if (s.hp > 0 && hitCircle(s, state.player) && s.touchCd <= 0){
+          s.touchCd = 0.4;
+          state.player.hp -= 9;
+        }
+      }
+
+      state.slimes = state.slimes.filter(s => s.hp > 0);
+      if (state.player.hp <= 0) gameOver();
+    }
+
+    function drawBackground(){
+      ctx.fillStyle = "#0c1220";
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle = "rgba(255,255,255,.17)";
+      for (let i=0;i<55;i++){
+        const y = (i*37 + (state.t*120)%canvas.height) % canvas.height;
+        const x = (i*73) % canvas.width;
+        ctx.fillRect(x, y, 2, 2);
+      }
+    }
+
+    function draw(){
+      drawBackground();
+      for (const b of state.bullets){
+        const s = 12;
+        if (bulletImg.complete && bulletImg.naturalWidth) ctx.drawImage(bulletImg, b.x-s/2, b.y-s/2, s, s);
+        else { ctx.fillStyle="#ffe57d"; ctx.fillRect(b.x-2,b.y-6,4,12); }
+      }
+      for (const s of state.slimes) s.draw();
+      state.player.draw();
+
+      hpEl.textContent = "HP: " + Math.max(0, Math.ceil(state.player.hp));
+      scoreEl.textContent = "Score: " + state.score;
+      timeEl.textContent = "Time: " + state.t.toFixed(1) + "s";
+    }
+
+    function gameOver(){
+      state.over = true;
+      overEl.style.display = "flex";
+      resultEl.textContent = `生存 ${state.t.toFixed(1)} 秒 / 擊殺 ${state.score} 隻`;
+    }
+
+    function reset(){
+      state.player = new Player();
+      state.bullets = []; state.slimes = []; state.particles = [];
+      state.score = 0; state.t = 0; state.spawnTimer = 0; state.over = false; state.fireHold = false;
+      overEl.style.display = "none";
+      input.x = 0; input.y = 0; knobEl.style.transform = "translate(0,0)";
+    }
+
+    function loop(ts){
+      const dt = Math.min(0.033, (ts-last)/1000 || 0.016); last = ts;
+      update(dt); draw();
+      requestAnimationFrame(loop);
+    }
+
+    function refreshJoy(){
+      const r = joyEl.getBoundingClientRect();
+      joyCenter.x = r.left + r.width/2; joyCenter.y = r.top + r.height/2;
+      joyR = r.width * 0.36;
+    }
+
+    function joyMove(t){
+      const dx = t.clientX - joyCenter.x, dy = t.clientY - joyCenter.y;
+      const len = Math.hypot(dx,dy) || 1, c = Math.min(len, joyR);
+      const nx = dx/len, ny = dy/len;
+      input.x = nx * (c/joyR); input.y = ny * (c/joyR);
+      knobEl.style.transform = `translate(${nx*c}px, ${ny*c}px)`;
+    }
+
+    joyEl.addEventListener("touchstart", e => {
+      if (joyId !== null || state.over) return;
+      joyId = e.changedTouches[0].identifier; joyMove(e.changedTouches[0]);
+    }, {passive:false});
+
+    joyEl.addEventListener("touchmove", e => {
+      if (joyId === null) return;
+      for (const t of e.changedTouches) if (t.identifier === joyId) joyMove(t);
+    }, {passive:false});
+
+    function joyEnd(e){
+      if (joyId === null) return;
+      for (const t of e.changedTouches){
+        if (t.identifier === joyId){
+          joyId = null; input.x=0; input.y=0; knobEl.style.transform="translate(0,0)";
+        }
+      }
+    }
+    joyEl.addEventListener("touchend", joyEnd, {passive:false});
+    joyEl.addEventListener("touchcancel", joyEnd, {passive:false});
+
+    fireBtn.addEventListener("touchstart", () => { if (!state.over) state.fireHold = true; }, {passive:false});
+    fireBtn.addEventListener("touchend", () => state.fireHold = false, {passive:false});
+    fireBtn.addEventListener("touchcancel", () => state.fireHold = false, {passive:false});
+    restartBtn.addEventListener("touchstart", reset, {passive:false});
+    restartBtn.addEventListener("click", reset);
+
+    reset();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
