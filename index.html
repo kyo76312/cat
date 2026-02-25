@@ -1,10 +1,9 @@
-```html
 <!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>貓咪生存彈幕</title>
+  <title>貓咪生存彈幕1203</title>
   <style>
     :root {
       --bg-a: #0b1018;
@@ -15,909 +14,747 @@
     }
     * { box-sizing: border-box; }
     html, body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      touch-action: none;
-      background: #0a0f17;
-      color: var(--text);
-      font-family: monospace;
-      user-select: none;
-      -webkit-user-select: none;
-      -webkit-touch-callout: none;
+      margin: 0; width: 100%; height: 100%;
+      overflow: hidden; touch-action: none;
+      background: #0a0f17; color: var(--text); font-family: monospace;
+      user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
     }
     canvas {
-      display: block;
-      width: 100vw;
-      height: 100vh;
-      image-rendering: pixelated;
-      image-rendering: crisp-edges;
+      display: block; width: 100vw; height: 100vh;
+      image-rendering: pixelated; image-rendering: crisp-edges;
       background: linear-gradient(var(--bg-a), var(--bg-b));
     }
     #hud {
-      position: fixed;
-      left: 10px;
-      top: 10px;
-      z-index: 10;
-      background: var(--panel);
-      border-radius: 8px;
-      padding: 8px 10px;
-      font-size: 13px;
-      line-height: 1.35;
-      min-width: 180px;
+      position: fixed; left: 10px; top: 10px; z-index: 10;
+      background: var(--panel); border-radius: 8px; padding: 8px 10px;
+      font-size: 13px; line-height: 1.35; min-width: 185px;
     }
-    #controls {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 20;
-    }
+    #controls { position: fixed; inset: 0; pointer-events: none; z-index: 20; }
     #joystick {
-      position: absolute;
-      left: 14px;
-      bottom: 14px;
-      width: var(--joy-size);
-      height: var(--joy-size);
-      border-radius: 50%;
-      border: 2px solid rgba(255,255,255,0.22);
-      background: rgba(255,255,255,0.08);
-      pointer-events: auto;
-      touch-action: none;
+      position: absolute; left: 14px; bottom: 14px;
+      width: var(--joy-size); height: var(--joy-size);
+      border-radius: 50%; border: 2px solid rgba(255,255,255,0.22);
+      background: rgba(255,255,255,0.08); pointer-events: auto; touch-action: none;
     }
     #stick {
-      position: absolute;
-      width: 50px;
-      height: 50px;
-      left: calc(50% - 25px);
-      top: calc(50% - 25px);
-      border-radius: 50%;
-      border: 2px solid rgba(255,255,255,0.35);
-      background: rgba(255,255,255,0.22);
-      transform: translate(0, 0);
+      position: absolute; width: 50px; height: 50px;
+      left: calc(50% - 25px); top: calc(50% - 25px);
+      border-radius: 50%; border: 2px solid rgba(255,255,255,0.35);
+      background: rgba(255,255,255,0.22); transform: translate(0, 0);
     }
     .overlay {
-      position: fixed;
-      inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 30;
-      background: rgba(0,0,0,0.62);
-      touch-action: none;
+      position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+      z-index: 30; background: rgba(0,0,0,0.62); touch-action: none;
     }
     .panel {
-      width: min(360px, 90vw);
-      background: #182235;
-      border: 2px solid #2d3c59;
-      border-radius: 12px;
-      padding: 14px;
-      text-align: center;
+      width: min(360px, 90vw); background: #182235; border: 2px solid #2d3c59;
+      border-radius: 12px; padding: 14px; text-align: center;
     }
-    .panel h2 {
-      margin: 0 0 10px;
-      font-size: 24px;
-    }
-    .desc {
-      margin: 0 0 10px;
-      font-size: 13px;
-      opacity: 0.92;
-    }
+    .panel h2 { margin: 0 0 10px; font-size: 24px; }
+    .desc { margin: 0 0 10px; font-size: 13px; opacity: 0.92; }
     .btn {
-      width: 100%;
-      border: 0;
-      border-radius: 8px;
-      padding: 11px;
-      margin-top: 8px;
-      background: #2fae72;
-      color: #fff;
-      font-size: 16px;
-      font-weight: bold;
-      touch-action: none;
+      width: 100%; border: 0; border-radius: 8px; padding: 11px; margin-top: 8px;
+      background: #2fae72; color: #fff; font-size: 16px; font-weight: bold; touch-action: none;
     }
     .up-btn {
-      width: 100%;
-      border: 1px solid #40557f;
-      border-radius: 8px;
-      padding: 10px;
-      margin-top: 8px;
-      text-align: left;
-      background: #263755;
-      color: #fff;
-      font-size: 14px;
-      touch-action: none;
+      width: 100%; border: 1px solid #40557f; border-radius: 8px; padding: 10px; margin-top: 8px;
+      text-align: left; background: #263755; color: #fff; font-size: 14px; touch-action: none;
     }
   </style>
 </head>
 <body>
-  <canvas id="game"></canvas>
+<canvas id="game"></canvas>
 
-  <div id="hud">
-    <div id="hudHp">生命：100</div>
-    <div id="hudScore">分數：0</div>
-    <div id="hudTime">時間：0.0s</div>
-    <div id="hudCombo">連殺：0</div>
-    <div id="hudMulti">倍率：x1.00</div>
-    <div style="margin-top:6px">技能：</div>
-    <div id="hudPen">穿透：Lv0</div>
-    <div id="hudSpr">散射：Lv0</div>
-    <div id="hudBnc">彈射：Lv0</div>
-    <div id="hudExp">爆炸：Lv0</div>
+<div id="hud">
+  <div id="hudHp">生命：100</div>
+  <div id="hudScore">分數：0</div>
+  <div id="hudTime">時間：0.0s</div>
+  <div id="hudCombo">連殺：0</div>
+  <div id="hudMulti">倍率：x1.00</div>
+  <div style="margin-top:6px">技能：</div>
+  <div id="hudPen">穿透：Lv0</div>
+  <div id="hudSpr">散射：Lv0</div>
+  <div id="hudBnc">彈射：Lv0</div>
+  <div id="hudExp">爆炸：Lv0</div>
+</div>
+
+<div id="controls">
+  <div id="joystick"><div id="stick"></div></div>
+</div>
+
+<div id="upgradeModal" class="overlay">
+  <div class="panel">
+    <h2>選擇升級</h2>
+    <p class="desc">吃到 POWERUP：四選一</p>
+    <button id="upPierce" class="up-btn"></button>
+    <button id="upSpread" class="up-btn"></button>
+    <button id="upBounce" class="up-btn"></button>
+    <button id="upExplode" class="up-btn"></button>
+    <p id="queueText" class="desc"></p>
   </div>
+</div>
 
-  <div id="controls">
-    <div id="joystick"><div id="stick"></div></div>
+<div id="gameOverModal" class="overlay">
+  <div class="panel">
+    <h2 style="color:#ff8585">GAME OVER</h2>
+    <p id="resultText" class="desc"></p>
+    <button id="restartBtn" class="btn">重新開始</button>
   </div>
+</div>
 
-  <div id="upgradeModal" class="overlay">
-    <div class="panel">
-      <h2>選擇升級</h2>
-      <p class="desc">吃到 POWERUP：四選一</p>
-      <button id="upPierce" class="up-btn"></button>
-      <button id="upSpread" class="up-btn"></button>
-      <button id="upBounce" class="up-btn"></button>
-      <button id="upExplode" class="up-btn"></button>
-      <p id="queueText" class="desc"></p>
-    </div>
-  </div>
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+ctx.imageSmoothingEnabled = false;
 
-  <div id="gameOverModal" class="overlay">
-    <div class="panel">
-      <h2 style="color:#ff8585">GAME OVER</h2>
-      <p id="resultText" class="desc"></p>
-      <button id="restartBtn" class="btn">重新開始</button>
-    </div>
-  </div>
+const hudHp = document.getElementById("hudHp");
+const hudScore = document.getElementById("hudScore");
+const hudTime = document.getElementById("hudTime");
+const hudCombo = document.getElementById("hudCombo");
+const hudMulti = document.getElementById("hudMulti");
+const hudPen = document.getElementById("hudPen");
+const hudSpr = document.getElementById("hudSpr");
+const hudBnc = document.getElementById("hudBnc");
+const hudExp = document.getElementById("hudExp");
 
-  <script>
-    const canvas = document.getElementById("game");
-    const ctx = canvas.getContext("2d");
-    ctx.imageSmoothingEnabled = false;
+const joystick = document.getElementById("joystick");
+const stick = document.getElementById("stick");
 
-    const hudHp = document.getElementById("hudHp");
-    const hudScore = document.getElementById("hudScore");
-    const hudTime = document.getElementById("hudTime");
-    const hudCombo = document.getElementById("hudCombo");
-    const hudMulti = document.getElementById("hudMulti");
-    const hudPen = document.getElementById("hudPen");
-    const hudSpr = document.getElementById("hudSpr");
-    const hudBnc = document.getElementById("hudBnc");
-    const hudExp = document.getElementById("hudExp");
+const upgradeModal = document.getElementById("upgradeModal");
+const upPierce = document.getElementById("upPierce");
+const upSpread = document.getElementById("upSpread");
+const upBounce = document.getElementById("upBounce");
+const upExplode = document.getElementById("upExplode");
+const queueText = document.getElementById("queueText");
 
-    const joystick = document.getElementById("joystick");
-    const stick = document.getElementById("stick");
+const gameOverModal = document.getElementById("gameOverModal");
+const resultText = document.getElementById("resultText");
+const restartBtn = document.getElementById("restartBtn");
 
-    const upgradeModal = document.getElementById("upgradeModal");
-    const upPierce = document.getElementById("upPierce");
-    const upSpread = document.getElementById("upSpread");
-    const upBounce = document.getElementById("upBounce");
-    const upExplode = document.getElementById("upExplode");
-    const queueText = document.getElementById("queueText");
+const heroImg = new Image();
+const slimeImg = new Image();
+const bulletImg = new Image();
+heroImg.src = "assets/hero.png";
+slimeImg.src = "assets/slime.png";
+bulletImg.src = "assets/bullet.png";
 
-    const gameOverModal = document.getElementById("gameOverModal");
-    const resultText = document.getElementById("resultText");
-    const restartBtn = document.getElementById("restartBtn");
+const W = () => canvas.width;
+const H = () => canvas.height;
+const rand = (a, b) => Math.random() * (b - a) + a;
+const randi = (a, b) => Math.floor(rand(a, b + 1));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-    const heroImg = new Image();
-    const slimeImg = new Image();
-    const bulletImg = new Image();
-    heroImg.src = "assets/hero.png";
-    slimeImg.src = "assets/slime.png";
-    bulletImg.src = "assets/bullet.png";
+function circleHit(a, b) {
+  const dx = a.x - b.x, dy = a.y - b.y, rr = a.r + b.r;
+  return dx * dx + dy * dy <= rr * rr;
+}
+function affixZh(k) {
+  if (k === "split") return "分裂";
+  if (k === "dash") return "衝刺";
+  if (k === "shield") return "護盾";
+  if (k === "summon") return "召喚";
+  return k;
+}
+function pickBossAffixes(timeSec, bossIndex) {
+  if (bossIndex === 1) return [];
+  const pool = ["split", "dash", "shield", "summon"];
+  let count = 1;
+  if (timeSec >= 80) count = 2;
+  if (timeSec >= 150) count = 3;
+  if (timeSec >= 210) count = 4;
+  const picked = [];
+  while (picked.length < count) {
+    const a = pool[randi(0, pool.length - 1)];
+    if (!picked.includes(a)) picked.push(a);
+  }
+  return picked;
+}
 
-    const W = () => canvas.width;
-    const H = () => canvas.height;
-    const rand = (a, b) => Math.random() * (b - a) + a;
-    const randi = (a, b) => Math.floor(rand(a, b + 1));
-    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+class Player {
+  constructor() {
+    this.x = W() * 0.5;
+    this.y = H() * 0.82;
+    this.r = 12;
+    this.drawHalf = 14;
+    this.boundPad = this.drawHalf + 2;
+    this.maxHp = 100;
+    this.hp = 100;
+    this.speed = 250;
+    this.fireCd = 0;
+    this.fireInterval = 0.11;
+    this.hurtFlash = 0;
+  }
+  update(dt) {
+    this.x += input.x * this.speed * dt;
+    this.y += input.y * this.speed * dt;
 
-    function circleHit(a, b) {
-      const dx = a.x - b.x;
-      const dy = a.y - b.y;
-      const rr = a.r + b.r;
-      return dx * dx + dy * dy <= rr * rr;
+    // 嚴格邊界，角色圖不會超出畫面
+    this.x = clamp(this.x, this.boundPad, W() - this.boundPad);
+    this.y = clamp(this.y, this.boundPad, H() - this.boundPad);
+
+    this.fireCd -= dt;
+    if (this.fireCd <= 0 && !game.over && !game.upgradeOpen) {
+      this.fireCd = this.fireInterval;
+      spawnPlayerBullets();
     }
-
-    function affixZh(key) {
-      if (key === "split") return "分裂";
-      if (key === "dash") return "衝刺";
-      if (key === "shield") return "護盾";
-      if (key === "summon") return "召喚";
-      return key;
+    if (this.hurtFlash > 0) this.hurtFlash -= dt;
+  }
+  hurt(dmg) {
+    this.hp -= dmg;
+    if (this.hp < 0) this.hp = 0;
+    this.hurtFlash = 0.16;
+    resetCombo();
+    if (this.hp <= 0) {
+      game.over = true;
+      openGameOver();
     }
-
-    function pickBossAffixes(timeSec, bossIndex) {
-      if (bossIndex === 1) return [];
-      const pool = ["split", "dash", "shield", "summon"];
-      let count = 1;
-      if (timeSec >= 60) count = 2;
-      if (timeSec >= 110) count = 3;
-      if (timeSec >= 160) count = 4;
-      const picked = [];
-      while (picked.length < count) {
-        const a = pool[randi(0, pool.length - 1)];
-        if (!picked.includes(a)) picked.push(a);
-      }
-      return picked;
+  }
+  draw() {
+    const s = this.drawHalf * 2;
+    if (heroImg.complete && heroImg.naturalWidth) {
+      ctx.drawImage(heroImg, this.x - s / 2, this.y - s / 2, s, s);
+    } else {
+      ctx.fillStyle = "#68d6ff";
+      ctx.fillRect(this.x - 10, this.y - 10, 20, 20);
     }
-
-    class Player {
-      constructor() {
-        this.x = W() * 0.5;
-        this.y = H() * 0.82;
-        this.r = 12;
-        this.drawHalf = 14;
-        this.boundPad = this.drawHalf + 2;
-        this.maxHp = 100;
-        this.hp = 100;
-        this.speed = 255;
-        this.fireCd = 0;
-        this.fireInterval = 0.11;
-      }
-
-      update(dt) {
-        this.x += input.x * this.speed * dt;
-        this.y += input.y * this.speed * dt;
-
-        // 固定邊界，絕不出畫面
-        this.x = clamp(this.x, this.boundPad, W() - this.boundPad);
-        this.y = clamp(this.y, this.boundPad, H() - this.boundPad);
-
-        this.fireCd -= dt;
-        if (this.fireCd <= 0 && !game.over && !game.upgradeOpen) {
-          this.fireCd = this.fireInterval;
-          spawnPlayerBullets();
-        }
-      }
-
-      hurt(dmg) {
-        this.hp -= dmg;
-        if (this.hp < 0) this.hp = 0;
-        resetCombo();
-        if (this.hp <= 0) {
-          this.hp = 0;
-          game.over = true;
-          openGameOver();
-        }
-      }
-
-      draw() {
-        const s = this.drawHalf * 2;
-        if (heroImg.complete && heroImg.naturalWidth) {
-          ctx.drawImage(heroImg, this.x - s / 2, this.y - s / 2, s, s);
-        } else {
-          ctx.fillStyle = "#68d6ff";
-          ctx.fillRect(this.x - 10, this.y - 10, 20, 20);
-        }
-      }
+    if (this.hurtFlash > 0) {
+      ctx.fillStyle = "rgba(255,60,60,0.45)";
+      ctx.fillRect(this.x - s / 2, this.y - s / 2, s, s);
     }
+  }
+}
 
-    let enemySeq = 1;
-    class Enemy {
-      constructor({ isBoss = false, bossIndex = 0, x = rand(18, W() - 18), y = -30, hpScale = 1 }) {
-        this.id = enemySeq++;
-        this.isBoss = isBoss;
-        this.bossIndex = bossIndex;
-        this.x = x;
-        this.y = y;
-        this.alive = true;
-        this.touchCd = 0;
+let enemySeq = 1;
+class Enemy {
+  constructor({ isBoss = false, bossIndex = 0, x = rand(18, W() - 18), y = -30, hpScale = 1 }) {
+    this.id = enemySeq++;
+    this.isBoss = isBoss;
+    this.bossIndex = bossIndex;
+    this.x = x;
+    this.y = y;
+    this.alive = true;
+    this.touchCd = 0;
 
-        if (isBoss) {
-          const phase = Math.max(0, bossIndex - 1);
-          if (bossIndex === 1) {
-            this.r = 20;
-            this.maxHp = 40;
-            this.hp = this.maxHp;
-            this.speed = 90;
-            this.maxSpeed = 105;
-            this.affixes = new Set();
-          } else {
-            const sizeGrowth = 1 + phase * 0.12;
-            this.r = 20 * sizeGrowth;
-            this.maxHp = Math.floor((48 + phase * 12 + game.time * 0.15) * hpScale);
-            this.hp = this.maxHp;
-            this.speed = 95 + phase * 4 + game.time * 0.04;
-            this.maxSpeed = 125; // 上限，避免過快
-            this.affixes = new Set(pickBossAffixes(game.time, bossIndex));
-          }
-
-          this.dashCd = rand(2.8, 4.2);
-          this.dashTime = 0;
-          this.dashVx = 0;
-          this.dashVy = 0;
-          this.shieldCd = rand(5.2, 7.2);
-          this.shieldTime = 0;
-          this.summonCd = rand(4.8, 6.8);
-        } else {
-          this.r = 11;
-          this.maxHp = Math.max(1, Math.floor((1 + game.time / 40) * hpScale));
-          this.hp = this.maxHp;
-          this.speed = 80 + game.time * 0.55 + rand(0, 30);
-          this.affixes = new Set();
-        }
-      }
-
-      get shieldActive() {
-        return this.isBoss && this.affixes.has("shield") && this.shieldTime > 0;
-      }
-
-      takeDamage(dmg) {
-        if (!this.alive) return;
-        let real = dmg;
-        if (this.shieldActive) real *= 0.25;
-        this.hp -= real;
-      }
-
-      update(dt) {
-        if (!this.alive) return;
-        if (this.touchCd > 0) this.touchCd -= dt;
-
-        if (this.isBoss) {
-          if (this.affixes.has("shield")) {
-            this.shieldCd -= dt;
-            if (this.shieldCd <= 0) {
-              this.shieldCd = rand(5.4, 7.4);
-              this.shieldTime = 1.15;
-            }
-            this.shieldTime = Math.max(0, this.shieldTime - dt);
-          }
-
-          if (this.affixes.has("summon")) {
-            this.summonCd -= dt;
-            if (this.summonCd <= 0) {
-              this.summonCd = rand(5.2, 7.2);
-              for (let i = 0; i < 2; i++) {
-                game.enemies.push(new Enemy({
-                  isBoss: false,
-                  x: this.x + rand(-26, 26),
-                  y: this.y + rand(-8, 8),
-                  hpScale: 1 + game.time / 170
-                }));
-              }
-            }
-          }
-
-          if (this.affixes.has("dash")) {
-            if (this.dashTime > 0) {
-              this.dashTime -= dt;
-              this.x += this.dashVx * dt;
-              this.y += this.dashVy * dt;
-              return;
-            }
-            this.dashCd -= dt;
-            if (this.dashCd <= 0) {
-              this.dashCd = rand(3.0, 4.0);
-              this.dashTime = 0.28;
-              const dx = game.player.x - this.x;
-              const dy = game.player.y - this.y;
-              const d = Math.hypot(dx, dy) || 1;
-              const dashSpeed = Math.min(this.maxSpeed + 35, 155);
-              this.dashVx = (dx / d) * dashSpeed;
-              this.dashVy = (dy / d) * dashSpeed;
-            }
-          }
-
-          // Boss 持續追玩家，但有速度上限
-          const dx = game.player.x - this.x;
-          const dy = game.player.y - this.y;
-          const d = Math.hypot(dx, dy) || 1;
-          const chase = Math.min(this.speed, this.maxSpeed);
-          this.x += (dx / d) * chase * dt;
-          this.y += (dy / d) * chase * dt;
-        } else {
-          const dx = game.player.x - this.x;
-          const steer = clamp(dx / 170, -1, 1);
-          this.x += steer * 70 * dt;
-          this.y += this.speed * dt;
-        }
-      }
-
-      draw() {
-        if (!this.alive) return;
-
-        const s = this.r * 2.1;
-        if (slimeImg.complete && slimeImg.naturalWidth) {
-          ctx.drawImage(slimeImg, this.x - s / 2, this.y - s / 2, s, s);
-        } else {
-          ctx.fillStyle = this.isBoss ? "#ff9e9e" : "#86ff93";
-          ctx.fillRect(this.x - this.r, this.y - this.r, this.r * 2, this.r * 2);
-        }
-
-        if (this.isBoss) {
-          ctx.fillStyle = "#000";
-          ctx.fillRect(this.x - 34, this.y - this.r - 11, 68, 5);
-          const hpRatio = Math.max(0, this.hp / this.maxHp);
-          ctx.fillStyle = this.shieldActive ? "#8fc8ff" : "#ff5b5b";
-          ctx.fillRect(this.x - 34, this.y - this.r - 11, 68 * hpRatio, 5);
-
-          const label = [...this.affixes].map(affixZh).join(" ");
-          if (label) {
-            ctx.font = "bold 11px monospace";
-            ctx.textAlign = "center";
-            ctx.fillStyle = "#ffe187";
-            ctx.fillText(label, this.x, this.y - this.r - 16);
-          }
-        }
-      }
-    }
-
-    const game = {
-      player: null,
-      bullets: [],
-      enemies: [],
-      powerups: [],
-      pendingUpgrade: 0,
-      upgrades: { pierce: 0, spread: 0, bounce: 0, explode: 0 },
-      score: 0,
-      time: 0,
-      combo: 0,
-      comboTimer: 0,
-      over: false,
-      upgradeOpen: false,
-      spawnTimer: 0,
-      bossTimer: 20,
-      bossCount: 0,
-      bossInterval: 10
-    };
-
-    const input = { x: 0, y: 0 };
-    let joyTouchId = null;
-    let joyCenter = { x: 0, y: 0 };
-    let joyRadius = 0;
-    let lastTs = 0;
-
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      refreshJoystick();
-    }
-    window.addEventListener("resize", resizeCanvas);
-    resizeCanvas();
-
-    document.addEventListener("touchstart", e => e.preventDefault(), { passive: false });
-    document.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
-
-    function spawnPlayerBullets() {
-      const spreadLv = game.upgrades.spread;
-      const rows = 1 + spreadLv;
-      const gap = 13;
-      const center = (rows - 1) / 2;
-      const speed = 700;
-
-      for (let i = 0; i < rows; i++) {
-        const offset = (i - center) * gap;
-        const ang = (i - center) * 0.045;
-        const vx = Math.sin(ang) * speed;
-        const vy = -Math.cos(ang) * speed;
-        game.bullets.push({
-          x: game.player.x + offset,
-          y: game.player.y - 14,
-          vx, vy,
-          r: 5,
-          dmg: 1,
-          alive: true,
-          pierceLeft: game.upgrades.pierce,
-          bounceLeft: game.upgrades.bounce
-        });
-      }
-    }
-
-    function enemySpawnPattern(timeSec) {
-      // 慢熱曲線：前期明顯降低
-      if (timeSec < 20) return { interval: 0.95, batch: 1, hpScale: 1.0 };
-      if (timeSec < 45) return { interval: 0.75, batch: 2, hpScale: 1.05 };
-      if (timeSec < 80) return { interval: 0.60, batch: 3, hpScale: 1.1 };
-      if (timeSec < 120) return { interval: 0.48, batch: 4, hpScale: 1.2 };
-      return { interval: 0.36, batch: 5 + Math.floor((timeSec - 120) / 40), hpScale: 1.35 };
-    }
-
-    function spawnEnemies(dt) {
-      game.spawnTimer -= dt;
-      game.bossTimer -= dt;
-
-      const pat = enemySpawnPattern(game.time);
-      if (game.spawnTimer <= 0) {
-        game.spawnTimer = pat.interval;
-        for (let i = 0; i < pat.batch; i++) {
-          game.enemies.push(new Enemy({
-            isBoss: false,
-            hpScale: pat.hpScale + game.time / 260
-          }));
-        }
-      }
-
-      if (game.bossTimer <= 0) {
-        game.bossCount += 1;
-        game.bossTimer = game.bossInterval;
-        game.enemies.push(new Enemy({
-          isBoss: true,
-          bossIndex: game.bossCount,
-          hpScale: 1 + game.time / 170
-        }));
-      }
-    }
-
-    function createPowerup(x, y) {
-      game.powerups.push({ x, y, r: 18, ttl: 14, text: "POWERUP" });
-    }
-
-    function onEnemyKilled(enemy, addPoint = true) {
-      if (!enemy.alive) return;
-      enemy.alive = false;
-
-      if (enemy.isBoss) {
-        createPowerup(enemy.x, enemy.y);
-
-        if (enemy.affixes.has("split")) {
-          const n = 2 + Math.min(2, Math.floor(game.time / 80));
-          for (let i = 0; i < n; i++) {
-            const c = new Enemy({
-              isBoss: false,
-              x: enemy.x + rand(-26, 26),
-              y: enemy.y + rand(-8, 8),
-              hpScale: 1.2 + game.time / 220
-            });
-            c.r = Math.max(8, enemy.r * 0.5);
-            c.maxHp = Math.max(2, Math.floor(enemy.maxHp * 0.14));
-            c.hp = c.maxHp;
-            c.speed = 92 + rand(0, 24);
-            game.enemies.push(c);
-          }
-        }
-      }
-
-      if (addPoint) addScore(enemy.isBoss ? 30 : 4);
-    }
-
-    function addScore(base) {
-      if (game.comboTimer > 0) game.combo += 1;
-      else game.combo = 1;
-      game.comboTimer = 2.0;
-
-      const comboMulti = 1 + Math.min(3, game.combo * 0.08);
-      const hpRatio = game.player.hp / game.player.maxHp;
-      const dangerMulti = 1 + (1 - hpRatio) * 0.55;
-      game.score += Math.round(base * comboMulti * dangerMulti);
-    }
-
-    function resetCombo() {
-      game.combo = 0;
-      game.comboTimer = 0;
-    }
-
-    function findBounceTarget(fromEnemyId, x, y, range) {
-      let best = null;
-      let bestDist = range;
-      for (const e of game.enemies) {
-        if (!e.alive || e.id === fromEnemyId) continue;
-        const d = Math.hypot(e.x - x, e.y - y);
-        if (d < bestDist) {
-          best = e;
-          bestDist = d;
-        }
-      }
-      return best;
-    }
-
-    function applyExplosion(x, y, level, exclude) {
-      if (level <= 0) return;
-      const radius = 24 + level * 9;
-      const dmg = 0.6 + level * 0.35;
-
-      for (const e of game.enemies) {
-        if (!e.alive || e === exclude) continue;
-        const d = Math.hypot(e.x - x, e.y - y);
-        if (d <= radius + e.r) {
-          e.takeDamage(dmg);
-          if (e.hp <= 0) onEnemyKilled(e, true);
-        }
-      }
-
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(255,190,110,0.65)";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-
-    function updateBullets(dt) {
-      for (const b of game.bullets) {
-        if (!b.alive) continue;
-        b.x += b.vx * dt;
-        b.y += b.vy * dt;
-
-        if (b.x < -30 || b.x > W() + 30 || b.y < -40 || b.y > H() + 40) {
-          b.alive = false;
-          continue;
-        }
-
-        for (const e of game.enemies) {
-          if (!e.alive) continue;
-          if (!circleHit(b, e)) continue;
-
-          e.takeDamage(b.dmg);
-          if (game.upgrades.explode > 0) applyExplosion(e.x, e.y, game.upgrades.explode, e);
-          if (e.hp <= 0) onEnemyKilled(e, true);
-
-          let bounced = false;
-          if (b.bounceLeft > 0) {
-            const target = findBounceTarget(e.id, e.x, e.y, 210 + game.upgrades.bounce * 25);
-            if (target) {
-              const dx = target.x - e.x;
-              const dy = target.y - e.y;
-              const d = Math.hypot(dx, dy) || 1;
-              const sp = 700;
-              b.vx = (dx / d) * sp;
-              b.vy = (dy / d) * sp;
-              b.x = e.x;
-              b.y = e.y;
-              b.bounceLeft -= 1;
-              b.dmg *= 0.88;
-              bounced = true;
-            }
-          }
-
-          if (!bounced) {
-            if (b.pierceLeft > 0) {
-              b.pierceLeft -= 1;
-              b.y -= 2;
-            } else {
-              b.alive = false;
-            }
-          }
-          break;
-        }
-      }
-      game.bullets = game.bullets.filter(b => b.alive);
-    }
-
-    function updateEnemies(dt) {
-      for (const e of game.enemies) {
-        if (!e.alive) continue;
-        e.update(dt);
-
-        if (!e.isBoss && e.y > H() + e.r + 20) {
-          e.alive = false;
-          game.player.hurt(3);
-          continue;
-        }
-
-        if (circleHit(e, game.player)) {
-          if (e.isBoss) {
-            if (e.touchCd <= 0) {
-              e.touchCd = 0.8;
-              game.player.hurt(9);
-            }
-          } else {
-            e.alive = false;
-            game.player.hurt(8);
-          }
-        }
-      }
-      game.enemies = game.enemies.filter(e => e.alive);
-    }
-
-    function openUpgradeIfNeeded() {
-      if (game.pendingUpgrade <= 0 || game.upgradeOpen || game.over) return;
-      game.upgradeOpen = true;
-      upgradeModal.style.display = "flex";
-      refreshUpgradeUI();
-    }
-
-    function refreshUpgradeUI() {
-      const u = game.upgrades;
-      upPierce.textContent = `穿透 Lv${u.pierce}：子彈再多穿 1 隻`;
-      upSpread.textContent = `散射 Lv${u.spread}：子彈再多 1 排`;
-      upBounce.textContent = `彈射 Lv${u.bounce}：命中後可多彈 1 次`;
-      upExplode.textContent = `爆炸 Lv${u.explode}：擴大範圍傷害`;
-      queueText.textContent = `待選升級：${game.pendingUpgrade}`;
-    }
-
-    function chooseUpgrade(type) {
-      game.upgrades[type] += 1;
-      game.pendingUpgrade -= 1;
-      if (game.pendingUpgrade > 0) {
-        refreshUpgradeUI();
+    if (isBoss) {
+      const phase = Math.max(0, bossIndex - 1);
+      if (bossIndex === 1) {
+        this.r = 20; this.maxHp = 36; this.hp = 36;
+        this.speed = 85; this.maxSpeed = 98;
+        this.affixes = new Set();
       } else {
-        game.upgradeOpen = false;
-        upgradeModal.style.display = "none";
+        const size = 1 + phase * 0.1;
+        this.r = 20 * size;
+        this.maxHp = Math.floor((42 + phase * 10 + game.time * 0.11) * hpScale);
+        this.hp = this.maxHp;
+        this.speed = 90 + phase * 3 + game.time * 0.03;
+        this.maxSpeed = 120;
+        this.affixes = new Set(pickBossAffixes(game.time, bossIndex));
       }
+
+      // 護盾詞綴：先打穿護盾才扣血
+      if (this.affixes.has("shield")) {
+        this.shieldMax = Math.floor(this.maxHp * 0.6);
+        this.shield = this.shieldMax;
+      } else {
+        this.shieldMax = 0;
+        this.shield = 0;
+      }
+
+      this.dashCd = rand(3.2, 4.6);
+      this.dashTime = 0;
+      this.dashVx = 0;
+      this.dashVy = 0;
+      this.summonCd = rand(5.2, 7.2);
+    } else {
+      this.r = 10.5;
+      this.maxHp = Math.max(1, Math.floor((1 + game.time / 55) * hpScale));
+      this.hp = this.maxHp;
+      this.speed = 68 + game.time * 0.42 + rand(0, 20); // 前期再降速
+      this.affixes = new Set();
+      this.shield = 0;
+      this.shieldMax = 0;
     }
+  }
 
-    upPierce.addEventListener("touchstart", () => chooseUpgrade("pierce"), { passive: false });
-    upSpread.addEventListener("touchstart", () => chooseUpgrade("spread"), { passive: false });
-    upBounce.addEventListener("touchstart", () => chooseUpgrade("bounce"), { passive: false });
-    upExplode.addEventListener("touchstart", () => chooseUpgrade("explode"), { passive: false });
+  takeDamage(dmg) {
+    if (!this.alive) return;
+    // 先扣護盾
+    if (this.shield > 0) {
+      this.shield -= dmg;
+      if (this.shield < 0) {
+        this.hp += this.shield; // shield為負值，等價把溢出傷害扣到hp
+        this.shield = 0;
+      }
+    } else {
+      this.hp -= dmg;
+    }
+  }
 
-    upPierce.addEventListener("click", () => chooseUpgrade("pierce"));
-    upSpread.addEventListener("click", () => chooseUpgrade("spread"));
-    upBounce.addEventListener("click", () => chooseUpgrade("bounce"));
-    upExplode.addEventListener("click", () => chooseUpgrade("explode"));
+  update(dt) {
+    if (!this.alive) return;
+    if (this.touchCd > 0) this.touchCd -= dt;
 
-    function updatePowerups(dt) {
-      for (const p of game.powerups) {
-        p.ttl -= dt;
-        p.y += 10 * dt;
-        if (circleHit(p, game.player)) {
-          p.ttl = -1;
-          game.pendingUpgrade += 1;
-          openUpgradeIfNeeded();
+    if (this.isBoss) {
+      if (this.affixes.has("summon")) {
+        this.summonCd -= dt;
+        if (this.summonCd <= 0) {
+          this.summonCd = rand(5.5, 7.2);
+          for (let i = 0; i < 2; i++) {
+            game.enemies.push(new Enemy({
+              isBoss: false, x: this.x + rand(-26, 26), y: this.y + rand(-8, 8),
+              hpScale: 1 + game.time / 240
+            }));
+          }
         }
       }
-      game.powerups = game.powerups.filter(p => p.ttl > 0);
-    }
 
-    function updateHUD() {
-      const comboMulti = 1 + Math.min(3, game.combo * 0.08);
-      const dangerMulti = 1 + (1 - game.player.hp / game.player.maxHp) * 0.55;
-      const total = comboMulti * dangerMulti;
-
-      hudHp.textContent = `生命：${Math.ceil(game.player.hp)}`;
-      hudScore.textContent = `分數：${game.score}`;
-      hudTime.textContent = `時間：${game.time.toFixed(1)}s`;
-      hudCombo.textContent = `連殺：${game.combo}`;
-      hudMulti.textContent = `倍率：x${total.toFixed(2)}`;
-      hudPen.textContent = `穿透：Lv${game.upgrades.pierce}`;
-      hudSpr.textContent = `散射：Lv${game.upgrades.spread}`;
-      hudBnc.textContent = `彈射：Lv${game.upgrades.bounce}`;
-      hudExp.textContent = `爆炸：Lv${game.upgrades.explode}`;
-    }
-
-    function drawBg() {
-      ctx.fillStyle = "#0d1424";
-      ctx.fillRect(0, 0, W(), H());
-      ctx.fillStyle = "rgba(255,255,255,0.16)";
-      for (let i = 0; i < 65; i++) {
-        const y = (i * 37 + (game.time * 165) % H()) % H();
-        const x = (i * 73) % W();
-        ctx.fillRect(x, y, 2, 2);
-      }
-    }
-
-    function drawBullets() {
-      for (const b of game.bullets) {
-        const s = 12;
-        if (bulletImg.complete && bulletImg.naturalWidth) {
-          ctx.drawImage(bulletImg, b.x - s / 2, b.y - s / 2, s, s);
-        } else {
-          ctx.fillStyle = "#ffe585";
-          ctx.fillRect(b.x - 2, b.y - 6, 4, 12);
+      if (this.affixes.has("dash")) {
+        if (this.dashTime > 0) {
+          this.dashTime -= dt;
+          this.x += this.dashVx * dt;
+          this.y += this.dashVy * dt;
+          return;
+        }
+        this.dashCd -= dt;
+        if (this.dashCd <= 0) {
+          this.dashCd = rand(3.2, 4.4);
+          this.dashTime = 0.24;
+          const dx = game.player.x - this.x, dy = game.player.y - this.y;
+          const d = Math.hypot(dx, dy) || 1;
+          const sp = Math.min(this.maxSpeed + 26, 145);
+          this.dashVx = (dx / d) * sp;
+          this.dashVy = (dy / d) * sp;
         }
       }
+
+      // Boss持續追，不消失，且速度封頂
+      const dx = game.player.x - this.x, dy = game.player.y - this.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const chase = Math.min(this.speed, this.maxSpeed);
+      this.x += (dx / d) * chase * dt;
+      this.y += (dy / d) * chase * dt;
+    } else {
+      const dx = game.player.x - this.x;
+      this.x += clamp(dx / 180, -1, 1) * 62 * dt;
+      this.y += this.speed * dt;
+    }
+  }
+
+  draw() {
+    if (!this.alive) return;
+    const s = this.r * 2.1;
+    if (slimeImg.complete && slimeImg.naturalWidth) {
+      ctx.drawImage(slimeImg, this.x - s / 2, this.y - s / 2, s, s);
+    } else {
+      ctx.fillStyle = this.isBoss ? "#ff9e9e" : "#86ff93";
+      ctx.fillRect(this.x - this.r, this.y - this.r, this.r * 2, this.r * 2);
     }
 
-    function drawPowerups() {
-      for (const p of game.powerups) {
-        ctx.font = "bold 16px monospace";
+    if (this.isBoss) {
+      // 護盾條（上）
+      if (this.shieldMax > 0 && this.shield > 0) {
+        ctx.fillStyle = "#000";
+        ctx.fillRect(this.x - 34, this.y - this.r - 17, 68, 4);
+        ctx.fillStyle = "#72c8ff";
+        ctx.fillRect(this.x - 34, this.y - this.r - 17, 68 * (this.shield / this.shieldMax), 4);
+      }
+
+      // 血條（下）
+      ctx.fillStyle = "#000";
+      ctx.fillRect(this.x - 34, this.y - this.r - 11, 68, 5);
+      ctx.fillStyle = "#ff5b5b";
+      ctx.fillRect(this.x - 34, this.y - this.r - 11, 68 * Math.max(0, this.hp / this.maxHp), 5);
+
+      const label = [...this.affixes].map(affixZh).join(" ");
+      if (label) {
+        ctx.font = "bold 11px monospace";
         ctx.textAlign = "center";
-        ctx.fillStyle = "#ffdf63";
-        ctx.fillText(p.text, p.x, p.y);
+        ctx.fillStyle = "#ffe187";
+        ctx.fillText(label, this.x, this.y - this.r - 23);
       }
     }
+  }
+}
 
-    function draw() {
-      drawBg();
-      drawBullets();
-      for (const e of game.enemies) e.draw();
-      drawPowerups();
-      game.player.draw();
-      updateHUD();
+const game = {
+  player: null, bullets: [], enemies: [], powerups: [],
+  pendingUpgrade: 0, upgrades: { pierce: 0, spread: 0, bounce: 0, explode: 0 },
+  score: 0, time: 0, combo: 0, comboTimer: 0,
+  over: false, upgradeOpen: false,
+  spawnTimer: 0, bossTimer: 25, bossCount: 0, bossInterval: 10
+};
+
+const input = { x: 0, y: 0 };
+let joyTouchId = null, joyCenter = { x: 0, y: 0 }, joyRadius = 0, lastTs = 0;
+
+function resizeCanvas() {
+  canvas.width = innerWidth; canvas.height = innerHeight; refreshJoystick();
+}
+addEventListener("resize", resizeCanvas);
+resizeCanvas();
+
+document.addEventListener("touchstart", e => e.preventDefault(), { passive: false });
+document.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
+
+function spawnPlayerBullets() {
+  const rows = 1 + game.upgrades.spread;
+  const gap = 13, center = (rows - 1) / 2, speed = 700;
+  for (let i = 0; i < rows; i++) {
+    const off = (i - center) * gap;
+    const ang = (i - center) * 0.045;
+    game.bullets.push({
+      x: game.player.x + off, y: game.player.y - 14,
+      vx: Math.sin(ang) * speed, vy: -Math.cos(ang) * speed,
+      r: 5, dmg: 1, alive: true,
+      pierceLeft: game.upgrades.pierce, bounceLeft: game.upgrades.bounce
+    });
+  }
+}
+
+function enemySpawnPattern(t) {
+  // 重新下修初期難度
+  if (t < 25) return { interval: 1.2, batch: 1, hpScale: 0.85 };
+  if (t < 50) return { interval: 0.95, batch: 1, hpScale: 0.95 };
+  if (t < 80) return { interval: 0.78, batch: 2, hpScale: 1.0 };
+  if (t < 120) return { interval: 0.64, batch: 2, hpScale: 1.1 };
+  if (t < 170) return { interval: 0.52, batch: 3, hpScale: 1.2 };
+  return { interval: 0.4, batch: 4 + Math.floor((t - 170) / 45), hpScale: 1.35 };
+}
+
+function spawnEnemies(dt) {
+  game.spawnTimer -= dt;
+  game.bossTimer -= dt;
+
+  const pat = enemySpawnPattern(game.time);
+  if (game.spawnTimer <= 0) {
+    game.spawnTimer = pat.interval;
+    for (let i = 0; i < pat.batch; i++) {
+      game.enemies.push(new Enemy({ isBoss: false, hpScale: pat.hpScale + game.time / 320 }));
+    }
+  }
+
+  if (game.bossTimer <= 0) {
+    game.bossCount += 1;
+    game.bossTimer = game.bossInterval;
+    game.enemies.push(new Enemy({
+      isBoss: true, bossIndex: game.bossCount, hpScale: 1 + game.time / 220
+    }));
+  }
+}
+
+function createPowerup(x, y) {
+  game.powerups.push({ x, y, r: 18, ttl: 14, text: "POWERUP" });
+}
+
+function onEnemyKilled(enemy, addPoint = true) {
+  if (!enemy.alive) return;
+  enemy.alive = false;
+
+  if (enemy.isBoss) {
+    createPowerup(enemy.x, enemy.y);
+
+    if (enemy.affixes.has("split")) {
+      const n = 2 + Math.min(2, Math.floor(game.time / 90));
+      for (let i = 0; i < n; i++) {
+        const c = new Enemy({
+          isBoss: false, x: enemy.x + rand(-26, 26), y: enemy.y + rand(-8, 8),
+          hpScale: 1.15 + game.time / 260
+        });
+        c.r = Math.max(8, enemy.r * 0.5);
+        c.maxHp = Math.max(2, Math.floor(enemy.maxHp * 0.13));
+        c.hp = c.maxHp;
+        c.speed = 86 + rand(0, 20);
+        game.enemies.push(c);
+      }
+    }
+  }
+
+  if (addPoint) addScore(enemy.isBoss ? 30 : 4);
+}
+
+function addScore(base) {
+  game.combo = game.comboTimer > 0 ? game.combo + 1 : 1;
+  game.comboTimer = 2.0;
+  const comboMulti = 1 + Math.min(3, game.combo * 0.08);
+  const hpRatio = game.player.hp / game.player.maxHp;
+  const dangerMulti = 1 + (1 - hpRatio) * 0.55;
+  game.score += Math.round(base * comboMulti * dangerMulti);
+}
+function resetCombo() { game.combo = 0; game.comboTimer = 0; }
+
+function findBounceTarget(fromId, x, y, range) {
+  let best = null, bestD = range;
+  for (const e of game.enemies) {
+    if (!e.alive || e.id === fromId) continue;
+    const d = Math.hypot(e.x - x, e.y - y);
+    if (d < bestD) { best = e; bestD = d; }
+  }
+  return best;
+}
+
+function applyExplosion(x, y, lv, exclude) {
+  if (lv <= 0) return;
+  const radius = 24 + lv * 9;
+  const dmg = 0.6 + lv * 0.35;
+  for (const e of game.enemies) {
+    if (!e.alive || e === exclude) continue;
+    if (Math.hypot(e.x - x, e.y - y) <= radius + e.r) {
+      e.takeDamage(dmg);
+      if (e.hp <= 0) onEnemyKilled(e, true);
+    }
+  }
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(255,190,110,0.65)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+function updateBullets(dt) {
+  for (const b of game.bullets) {
+    if (!b.alive) continue;
+    b.x += b.vx * dt; b.y += b.vy * dt;
+    if (b.x < -30 || b.x > W() + 30 || b.y < -40 || b.y > H() + 40) {
+      b.alive = false; continue;
     }
 
-    function openGameOver() {
-      resultText.textContent = `生存 ${game.time.toFixed(1)} 秒，分數 ${game.score}`;
-      gameOverModal.style.display = "flex";
+    for (const e of game.enemies) {
+      if (!e.alive || !circleHit(b, e)) continue;
+
+      e.takeDamage(b.dmg);
+      if (game.upgrades.explode > 0) applyExplosion(e.x, e.y, game.upgrades.explode, e);
+      if (e.hp <= 0) onEnemyKilled(e, true);
+
+      let bounced = false;
+      if (b.bounceLeft > 0) {
+        const t = findBounceTarget(e.id, e.x, e.y, 210 + game.upgrades.bounce * 25);
+        if (t) {
+          const dx = t.x - e.x, dy = t.y - e.y, d = Math.hypot(dx, dy) || 1;
+          const sp = 700;
+          b.vx = dx / d * sp; b.vy = dy / d * sp;
+          b.x = e.x; b.y = e.y; b.bounceLeft -= 1; b.dmg *= 0.88; bounced = true;
+        }
+      }
+
+      if (!bounced) {
+        if (b.pierceLeft > 0) { b.pierceLeft -= 1; b.y -= 2; }
+        else b.alive = false;
+      }
+      break;
+    }
+  }
+  game.bullets = game.bullets.filter(b => b.alive);
+}
+
+function updateEnemies(dt) {
+  for (const e of game.enemies) {
+    if (!e.alive) continue;
+    e.update(dt);
+
+    if (!e.isBoss && e.y > H() + e.r + 20) {
+      e.alive = false;
+      game.player.hurt(2);
+      continue;
     }
 
-    function resetGame() {
-      game.player = new Player();
-      game.bullets = [];
-      game.enemies = [];
-      game.powerups = [];
-      game.pendingUpgrade = 0;
-      game.upgrades = { pierce: 0, spread: 0, bounce: 0, explode: 0 };
-      game.score = 0;
-      game.time = 0;
-      game.combo = 0;
-      game.comboTimer = 0;
-      game.over = false;
-      game.upgradeOpen = false;
-      game.spawnTimer = 0;
-      game.bossTimer = 20; // 首隻 Boss 延後
-      game.bossCount = 0;
+    if (circleHit(e, game.player)) {
+      if (e.isBoss) {
+        // 修正：Boss碰撞不消失，只用冷卻持續傷害
+        if (e.touchCd <= 0) {
+          e.touchCd = 0.8;
+          game.player.hurt(7);
+        }
+      } else {
+        e.alive = false;
+        game.player.hurt(8);
+      }
+    }
+  }
+  game.enemies = game.enemies.filter(e => e.alive);
+}
 
-      input.x = 0;
-      input.y = 0;
+function openUpgradeIfNeeded() {
+  if (game.pendingUpgrade <= 0 || game.upgradeOpen || game.over) return;
+  game.upgradeOpen = true;
+  upgradeModal.style.display = "flex";
+  refreshUpgradeUI();
+}
+function refreshUpgradeUI() {
+  const u = game.upgrades;
+  upPierce.textContent = `穿透 Lv${u.pierce}：子彈再多穿 1 隻`;
+  upSpread.textContent = `散射 Lv${u.spread}：子彈再多 1 排`;
+  upBounce.textContent = `彈射 Lv${u.bounce}：命中後可多彈 1 次`;
+  upExplode.textContent = `爆炸 Lv${u.explode}：擴大範圍傷害`;
+  queueText.textContent = `待選升級：${game.pendingUpgrade}`;
+}
+function chooseUpgrade(type) {
+  game.upgrades[type] += 1;
+  game.pendingUpgrade -= 1;
+  if (game.pendingUpgrade > 0) refreshUpgradeUI();
+  else { game.upgradeOpen = false; upgradeModal.style.display = "none"; }
+}
+
+upPierce.addEventListener("touchstart", () => chooseUpgrade("pierce"), { passive: false });
+upSpread.addEventListener("touchstart", () => chooseUpgrade("spread"), { passive: false });
+upBounce.addEventListener("touchstart", () => chooseUpgrade("bounce"), { passive: false });
+upExplode.addEventListener("touchstart", () => chooseUpgrade("explode"), { passive: false });
+upPierce.addEventListener("click", () => chooseUpgrade("pierce"));
+upSpread.addEventListener("click", () => chooseUpgrade("spread"));
+upBounce.addEventListener("click", () => chooseUpgrade("bounce"));
+upExplode.addEventListener("click", () => chooseUpgrade("explode"));
+
+function updatePowerups(dt) {
+  for (const p of game.powerups) {
+    p.ttl -= dt; p.y += 10 * dt;
+    if (circleHit(p, game.player)) {
+      p.ttl = -1;
+      game.pendingUpgrade += 1;
+      openUpgradeIfNeeded();
+    }
+  }
+  game.powerups = game.powerups.filter(p => p.ttl > 0);
+}
+
+function updateHUD() {
+  const comboMulti = 1 + Math.min(3, game.combo * 0.08);
+  const dangerMulti = 1 + (1 - game.player.hp / game.player.maxHp) * 0.55;
+  hudHp.textContent = `生命：${Math.ceil(game.player.hp)}`;
+  hudScore.textContent = `分數：${game.score}`;
+  hudTime.textContent = `時間：${game.time.toFixed(1)}s`;
+  hudCombo.textContent = `連殺：${game.combo}`;
+  hudMulti.textContent = `倍率：x${(comboMulti * dangerMulti).toFixed(2)}`;
+  hudPen.textContent = `穿透：Lv${game.upgrades.pierce}`;
+  hudSpr.textContent = `散射：Lv${game.upgrades.spread}`;
+  hudBnc.textContent = `彈射：Lv${game.upgrades.bounce}`;
+  hudExp.textContent = `爆炸：Lv${game.upgrades.explode}`;
+}
+
+function drawBg() {
+  ctx.fillStyle = "#0d1424";
+  ctx.fillRect(0, 0, W(), H());
+  ctx.fillStyle = "rgba(255,255,255,0.16)";
+  for (let i = 0; i < 65; i++) {
+    const y = (i * 37 + (game.time * 165) % H()) % H();
+    const x = (i * 73) % W();
+    ctx.fillRect(x, y, 2, 2);
+  }
+}
+function drawBullets() {
+  for (const b of game.bullets) {
+    const s = 12;
+    if (bulletImg.complete && bulletImg.naturalWidth) {
+      ctx.drawImage(bulletImg, b.x - s / 2, b.y - s / 2, s, s);
+    } else {
+      ctx.fillStyle = "#ffe585";
+      ctx.fillRect(b.x - 2, b.y - 6, 4, 12);
+    }
+  }
+}
+function drawPowerups() {
+  for (const p of game.powerups) {
+    ctx.font = "bold 16px monospace";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ffdf63";
+    ctx.fillText(p.text, p.x, p.y);
+  }
+}
+function draw() {
+  drawBg();
+  drawBullets();
+  for (const e of game.enemies) e.draw();
+  drawPowerups();
+  game.player.draw();
+  updateHUD();
+}
+
+function openGameOver() {
+  resultText.textContent = `生存 ${game.time.toFixed(1)} 秒，分數 ${game.score}`;
+  gameOverModal.style.display = "flex";
+}
+
+function resetGame() {
+  game.player = new Player();
+  game.bullets = []; game.enemies = []; game.powerups = [];
+  game.pendingUpgrade = 0;
+  game.upgrades = { pierce: 0, spread: 0, bounce: 0, explode: 0 };
+  game.score = 0; game.time = 0; game.combo = 0; game.comboTimer = 0;
+  game.over = false; game.upgradeOpen = false;
+  game.spawnTimer = 0; game.bossTimer = 25; game.bossCount = 0;
+
+  input.x = 0; input.y = 0;
+  stick.style.transform = "translate(0,0)";
+  upgradeModal.style.display = "none";
+  gameOverModal.style.display = "none";
+}
+restartBtn.addEventListener("touchstart", resetGame, { passive: false });
+restartBtn.addEventListener("click", resetGame);
+
+function refreshJoystick() {
+  const r = joystick.getBoundingClientRect();
+  joyCenter.x = r.left + r.width / 2;
+  joyCenter.y = r.top + r.height / 2;
+  joyRadius = r.width * 0.36;
+}
+function updateJoy(t) {
+  const dx = t.clientX - joyCenter.x, dy = t.clientY - joyCenter.y;
+  const len = Math.hypot(dx, dy) || 1, c = Math.min(len, joyRadius);
+  const nx = dx / len, ny = dy / len;
+  input.x = nx * (c / joyRadius);
+  input.y = ny * (c / joyRadius);
+  stick.style.transform = `translate(${nx * c}px, ${ny * c}px)`;
+}
+joystick.addEventListener("touchstart", e => {
+  if (joyTouchId !== null || game.over) return;
+  const t = e.changedTouches[0];
+  joyTouchId = t.identifier;
+  updateJoy(t);
+}, { passive: false });
+
+document.addEventListener("touchmove", e => {
+  if (joyTouchId === null) return;
+  for (const t of e.changedTouches) {
+    if (t.identifier === joyTouchId) { updateJoy(t); break; }
+  }
+}, { passive: false });
+
+function endJoy(e) {
+  if (joyTouchId === null) return;
+  for (const t of e.changedTouches) {
+    if (t.identifier === joyTouchId) {
+      joyTouchId = null; input.x = 0; input.y = 0;
       stick.style.transform = "translate(0,0)";
-      upgradeModal.style.display = "none";
-      gameOverModal.style.display = "none";
+      break;
     }
+  }
+}
+document.addEventListener("touchend", endJoy, { passive: false });
+document.addEventListener("touchcancel", endJoy, { passive: false });
 
-    restartBtn.addEventListener("touchstart", resetGame, { passive: false });
-    restartBtn.addEventListener("click", resetGame);
+function update(dt) {
+  if (game.over || game.upgradeOpen) return;
+  game.time += dt;
+  if (game.comboTimer > 0) {
+    game.comboTimer -= dt;
+    if (game.comboTimer <= 0) game.combo = 0;
+  }
+  game.player.update(dt);
+  spawnEnemies(dt);
+  updateBullets(dt);
+  updateEnemies(dt);
+  updatePowerups(dt);
+}
 
-    function refreshJoystick() {
-      const r = joystick.getBoundingClientRect();
-      joyCenter.x = r.left + r.width / 2;
-      joyCenter.y = r.top + r.height / 2;
-      joyRadius = r.width * 0.36;
-    }
+function loop(ts) {
+  const dt = Math.min(0.033, ((ts - lastTs) / 1000) || 0.016);
+  lastTs = ts;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
 
-    function updateJoyByTouch(t) {
-      const dx = t.clientX - joyCenter.x;
-      const dy = t.clientY - joyCenter.y;
-      const len = Math.hypot(dx, dy) || 1;
-      const c = Math.min(len, joyRadius);
-      const nx = dx / len;
-      const ny = dy / len;
-      input.x = nx * (c / joyRadius);
-      input.y = ny * (c / joyRadius);
-      stick.style.transform = `translate(${nx * c}px, ${ny * c}px)`;
-    }
-
-    joystick.addEventListener("touchstart", e => {
-      if (joyTouchId !== null || game.over) return;
-      const t = e.changedTouches[0];
-      joyTouchId = t.identifier;
-      updateJoyByTouch(t);
-    }, { passive: false });
-
-    document.addEventListener("touchmove", e => {
-      if (joyTouchId === null) return;
-      for (const t of e.changedTouches) {
-        if (t.identifier === joyTouchId) {
-          updateJoyByTouch(t);
-          break;
-        }
-      }
-    }, { passive: false });
-
-    function endJoystick(e) {
-      if (joyTouchId === null) return;
-      for (const t of e.changedTouches) {
-        if (t.identifier === joyTouchId) {
-          joyTouchId = null;
-          input.x = 0;
-          input.y = 0;
-          stick.style.transform = "translate(0,0)";
-          break;
-        }
-      }
-    }
-
-    document.addEventListener("touchend", endJoystick, { passive: false });
-    document.addEventListener("touchcancel", endJoystick, { passive: false });
-
-    function update(dt) {
-      if (game.over) return;
-      if (game.upgradeOpen) return;
-
-      game.time += dt;
-      if (game.comboTimer > 0) {
-        game.comboTimer -= dt;
-        if (game.comboTimer <= 0) game.combo = 0;
-      }
-
-      game.player.update(dt);
-      spawnEnemies(dt);
-      updateBullets(dt);
-      updateEnemies(dt);
-      updatePowerups(dt);
-    }
-
-    function loop(ts) {
-      const dt = Math.min(0.033, ((ts - lastTs) / 1000) || 0.016);
-      lastTs = ts;
-      update(dt);
-      draw();
-      requestAnimationFrame(loop);
-    }
-
-    resizeCanvas();
-    resetGame();
-    requestAnimationFrame(loop);
-  </script>
+resizeCanvas();
+resetGame();
+requestAnimationFrame(loop);
+</script>
 </body>
 </html>
-```
