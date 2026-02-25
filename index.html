@@ -1,63 +1,58 @@
+```html
 <!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>直向生存彈幕</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>貓咪生存彈幕</title>
   <style>
     :root {
-      --bg1: #0b1018;
-      --bg2: #111c2f;
+      --bg-a: #0b1018;
+      --bg-b: #142238;
       --panel: rgba(0, 0, 0, 0.45);
-      --text: #ecf3ff;
+      --text: #edf3ff;
       --joy-size: 128px;
     }
-
     * { box-sizing: border-box; }
-
     html, body {
       margin: 0;
       width: 100%;
       height: 100%;
       overflow: hidden;
       touch-action: none;
-      background: #0a0f18;
+      background: #0a0f17;
       color: var(--text);
-      font-family: "Courier New", monospace;
+      font-family: monospace;
       user-select: none;
       -webkit-user-select: none;
       -webkit-touch-callout: none;
     }
-
     canvas {
       display: block;
       width: 100vw;
       height: 100vh;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
-      background: linear-gradient(var(--bg1), var(--bg2));
+      background: linear-gradient(var(--bg-a), var(--bg-b));
     }
-
     #hud {
       position: fixed;
       left: 10px;
       top: 10px;
       z-index: 10;
       background: var(--panel);
-      padding: 8px 10px;
       border-radius: 8px;
+      padding: 8px 10px;
       font-size: 13px;
       line-height: 1.35;
-      min-width: 172px;
+      min-width: 180px;
     }
-
     #controls {
       position: fixed;
       inset: 0;
       pointer-events: none;
       z-index: 20;
     }
-
     #joystick {
       position: absolute;
       left: 14px;
@@ -70,7 +65,6 @@
       pointer-events: auto;
       touch-action: none;
     }
-
     #stick {
       position: absolute;
       width: 50px;
@@ -79,75 +73,59 @@
       top: calc(50% - 25px);
       border-radius: 50%;
       border: 2px solid rgba(255,255,255,0.35);
-      background: rgba(255,255,255,0.24);
+      background: rgba(255,255,255,0.22);
       transform: translate(0, 0);
     }
-
     .overlay {
       position: fixed;
       inset: 0;
       display: none;
       align-items: center;
       justify-content: center;
-      background: rgba(0,0,0,0.62);
       z-index: 30;
+      background: rgba(0,0,0,0.62);
       touch-action: none;
     }
-
     .panel {
       width: min(360px, 90vw);
-      background: #171f2f;
-      border: 2px solid #2c3950;
+      background: #182235;
+      border: 2px solid #2d3c59;
       border-radius: 12px;
-      padding: 16px;
+      padding: 14px;
       text-align: center;
     }
-
     .panel h2 {
       margin: 0 0 10px;
       font-size: 24px;
     }
-
-    .small {
+    .desc {
+      margin: 0 0 10px;
       font-size: 13px;
-      opacity: 0.9;
-      margin-bottom: 10px;
+      opacity: 0.92;
     }
-
     .btn {
       width: 100%;
       border: 0;
       border-radius: 8px;
-      padding: 10px;
+      padding: 11px;
       margin-top: 8px;
+      background: #2fae72;
       color: #fff;
       font-size: 16px;
       font-weight: bold;
       touch-action: none;
-      background: #2ea86f;
     }
-
-    .upgrade-btn {
-      background: #2b3957;
-      border: 1px solid #3d517a;
-      text-align: left;
-      padding: 10px;
+    .up-btn {
+      width: 100%;
+      border: 1px solid #40557f;
       border-radius: 8px;
+      padding: 10px;
       margin-top: 8px;
+      text-align: left;
+      background: #263755;
       color: #fff;
       font-size: 14px;
-      width: 100%;
       touch-action: none;
-    }
-
-    .tag {
-      display: inline-block;
-      border: 1px solid #4a5f87;
-      border-radius: 999px;
-      font-size: 12px;
-      padding: 2px 8px;
-      margin: 2px;
-      background: rgba(123, 164, 240, 0.2);
     }
   </style>
 </head>
@@ -160,11 +138,11 @@
     <div id="hudTime">時間：0.0s</div>
     <div id="hudCombo">連殺：0</div>
     <div id="hudMulti">倍率：x1.00</div>
-    <div style="margin-top:6px;">技能：</div>
-    <div id="hudSkillPen">穿透：Lv0</div>
-    <div id="hudSkillSpr">散射：Lv0</div>
-    <div id="hudSkillBnc">彈射：Lv0</div>
-    <div id="hudSkillExp">爆炸：Lv0</div>
+    <div style="margin-top:6px">技能：</div>
+    <div id="hudPen">穿透：Lv0</div>
+    <div id="hudSpr">散射：Lv0</div>
+    <div id="hudBnc">彈射：Lv0</div>
+    <div id="hudExp">爆炸：Lv0</div>
   </div>
 
   <div id="controls">
@@ -174,19 +152,19 @@
   <div id="upgradeModal" class="overlay">
     <div class="panel">
       <h2>選擇升級</h2>
-      <div class="small">吃到 POWERUP，四選一</div>
-      <button class="upgrade-btn" data-type="pierce" id="upPierce"></button>
-      <button class="upgrade-btn" data-type="spread" id="upSpread"></button>
-      <button class="upgrade-btn" data-type="bounce" id="upBounce"></button>
-      <button class="upgrade-btn" data-type="explode" id="upExplode"></button>
-      <div id="queueInfo" class="small" style="margin-top:10px;"></div>
+      <p class="desc">吃到 POWERUP：四選一</p>
+      <button id="upPierce" class="up-btn"></button>
+      <button id="upSpread" class="up-btn"></button>
+      <button id="upBounce" class="up-btn"></button>
+      <button id="upExplode" class="up-btn"></button>
+      <p id="queueText" class="desc"></p>
     </div>
   </div>
 
   <div id="gameOverModal" class="overlay">
     <div class="panel">
-      <h2 style="color:#ff7f7f;">GAME OVER</h2>
-      <div id="resultText" class="small"></div>
+      <h2 style="color:#ff8585">GAME OVER</h2>
+      <p id="resultText" class="desc"></p>
       <button id="restartBtn" class="btn">重新開始</button>
     </div>
   </div>
@@ -201,24 +179,24 @@
     const hudTime = document.getElementById("hudTime");
     const hudCombo = document.getElementById("hudCombo");
     const hudMulti = document.getElementById("hudMulti");
-    const hudSkillPen = document.getElementById("hudSkillPen");
-    const hudSkillSpr = document.getElementById("hudSkillSpr");
-    const hudSkillBnc = document.getElementById("hudSkillBnc");
-    const hudSkillExp = document.getElementById("hudSkillExp");
+    const hudPen = document.getElementById("hudPen");
+    const hudSpr = document.getElementById("hudSpr");
+    const hudBnc = document.getElementById("hudBnc");
+    const hudExp = document.getElementById("hudExp");
+
+    const joystick = document.getElementById("joystick");
+    const stick = document.getElementById("stick");
 
     const upgradeModal = document.getElementById("upgradeModal");
     const upPierce = document.getElementById("upPierce");
     const upSpread = document.getElementById("upSpread");
     const upBounce = document.getElementById("upBounce");
     const upExplode = document.getElementById("upExplode");
-    const queueInfo = document.getElementById("queueInfo");
+    const queueText = document.getElementById("queueText");
 
     const gameOverModal = document.getElementById("gameOverModal");
-    const restartBtn = document.getElementById("restartBtn");
     const resultText = document.getElementById("resultText");
-
-    const joystick = document.getElementById("joystick");
-    const stick = document.getElementById("stick");
+    const restartBtn = document.getElementById("restartBtn");
 
     const heroImg = new Image();
     const slimeImg = new Image();
@@ -233,10 +211,6 @@
     const randi = (a, b) => Math.floor(rand(a, b + 1));
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-    function distance(a, b) {
-      return Math.hypot(a.x - b.x, a.y - b.y);
-    }
-
     function circleHit(a, b) {
       const dx = a.x - b.x;
       const dy = a.y - b.y;
@@ -244,98 +218,123 @@
       return dx * dx + dy * dy <= rr * rr;
     }
 
+    function affixZh(key) {
+      if (key === "split") return "分裂";
+      if (key === "dash") return "衝刺";
+      if (key === "shield") return "護盾";
+      if (key === "summon") return "召喚";
+      return key;
+    }
+
+    function pickBossAffixes(timeSec, bossIndex) {
+      if (bossIndex === 1) return [];
+      const pool = ["split", "dash", "shield", "summon"];
+      let count = 1;
+      if (timeSec >= 60) count = 2;
+      if (timeSec >= 110) count = 3;
+      if (timeSec >= 160) count = 4;
+      const picked = [];
+      while (picked.length < count) {
+        const a = pool[randi(0, pool.length - 1)];
+        if (!picked.includes(a)) picked.push(a);
+      }
+      return picked;
+    }
+
     class Player {
-  constructor() {
-    this.x = W() * 0.5;
-    this.y = H() * 0.82;
-    this.r = 12;            // 碰撞半徑
-    this.drawHalf = 14;     // 角色繪製半徑(28x28)
-    this.boundPad = this.drawHalf + 2; // 防止視覺超出
-    this.maxHp = 100;
-    this.hp = 100;
-    this.speed = 265;
-    this.fireCd = 0;
-    this.fireInterval = 0.1;
-  }
+      constructor() {
+        this.x = W() * 0.5;
+        this.y = H() * 0.82;
+        this.r = 12;
+        this.drawHalf = 14;
+        this.boundPad = this.drawHalf + 2;
+        this.maxHp = 100;
+        this.hp = 100;
+        this.speed = 255;
+        this.fireCd = 0;
+        this.fireInterval = 0.11;
+      }
 
-  update(dt) {
-    this.x += input.x * this.speed * dt;
-    this.y += input.y * this.speed * dt;
+      update(dt) {
+        this.x += input.x * this.speed * dt;
+        this.y += input.y * this.speed * dt;
 
-    // 用視覺尺寸做邊界，徹底避免出畫面
-    this.x = clamp(this.x, this.boundPad, W() - this.boundPad);
-    this.y = clamp(this.y, this.boundPad, H() - this.boundPad);
+        // 固定邊界，絕不出畫面
+        this.x = clamp(this.x, this.boundPad, W() - this.boundPad);
+        this.y = clamp(this.y, this.boundPad, H() - this.boundPad);
 
-    this.fireCd -= dt;
-    if (this.fireCd <= 0 && !game.over && !game.upgradeOpen) {
-      this.fireCd = this.fireInterval;
-      spawnPlayerBullets();
-    }
-  }
+        this.fireCd -= dt;
+        if (this.fireCd <= 0 && !game.over && !game.upgradeOpen) {
+          this.fireCd = this.fireInterval;
+          spawnPlayerBullets();
+        }
+      }
 
-  draw() {
-    const s = this.drawHalf * 2;
-    if (heroImg.complete && heroImg.naturalWidth) {
-      ctx.drawImage(heroImg, this.x - s / 2, this.y - s / 2, s, s);
-    } else {
-      ctx.fillStyle = "#67d7ff";
-      ctx.fillRect(this.x - 10, this.y - 10, 20, 20);
-    }
-  }
+      hurt(dmg) {
+        this.hp -= dmg;
+        if (this.hp < 0) this.hp = 0;
+        resetCombo();
+        if (this.hp <= 0) {
+          this.hp = 0;
+          game.over = true;
+          openGameOver();
+        }
+      }
 
-  hurt(dmg) {
-    this.hp -= dmg;
-    if (this.hp < 0) this.hp = 0;
-    resetCombo();
-    if (this.hp <= 0) {
-      game.over = true;
-      openGameOver();
+      draw() {
+        const s = this.drawHalf * 2;
+        if (heroImg.complete && heroImg.naturalWidth) {
+          ctx.drawImage(heroImg, this.x - s / 2, this.y - s / 2, s, s);
+        } else {
+          ctx.fillStyle = "#68d6ff";
+          ctx.fillRect(this.x - 10, this.y - 10, 20, 20);
         }
       }
     }
 
-    let enemyIdSeq = 1;
+    let enemySeq = 1;
     class Enemy {
-      constructor({ isBoss = false, bossIndex = 0, x = rand(20, W() - 20), y = -30, hpScale = 1 }) {
-        this.id = enemyIdSeq++;
+      constructor({ isBoss = false, bossIndex = 0, x = rand(18, W() - 18), y = -30, hpScale = 1 }) {
+        this.id = enemySeq++;
         this.isBoss = isBoss;
         this.bossIndex = bossIndex;
         this.x = x;
         this.y = y;
         this.alive = true;
+        this.touchCd = 0;
 
         if (isBoss) {
-  const phase = Math.max(0, bossIndex - 1);
+          const phase = Math.max(0, bossIndex - 1);
+          if (bossIndex === 1) {
+            this.r = 20;
+            this.maxHp = 40;
+            this.hp = this.maxHp;
+            this.speed = 90;
+            this.maxSpeed = 105;
+            this.affixes = new Set();
+          } else {
+            const sizeGrowth = 1 + phase * 0.12;
+            this.r = 20 * sizeGrowth;
+            this.maxHp = Math.floor((48 + phase * 12 + game.time * 0.15) * hpScale);
+            this.hp = this.maxHp;
+            this.speed = 95 + phase * 4 + game.time * 0.04;
+            this.maxSpeed = 125; // 上限，避免過快
+            this.affixes = new Set(pickBossAffixes(game.time, bossIndex));
+          }
 
-  if (bossIndex === 1) {
-    // 第一隻 Boss 明顯放水
-    this.r = 20;
-    this.maxHp = 42;
-    this.hp = this.maxHp;
-    this.speed = 92;
-    this.affixes = new Set();
-  } else {
-    const growth = 1 + phase * 0.14;
-    this.r = 20 * growth;
-    this.maxHp = Math.floor((48 + phase * 14 + game.time * 0.22) * hpScale);
-    this.hp = this.maxHp;
-    this.speed = 108 + phase * 6 + game.time * 0.07;
-    this.affixes = new Set(pickBossAffixes(game.time, bossIndex));
-  }
-
-  this.dashCd = rand(2.6, 3.8);
-  this.dashTime = 0;
-  this.dashVx = 0;
-  this.dashVy = 0;
-  this.shieldCd = rand(5, 7);
-  this.shieldTime = 0;
-  this.summonCd = rand(4.5, 6.5);
-} else {
-  this.r = 11;
-  this.maxHp = Math.max(1, Math.floor((1 + game.time / 20) * hpScale));
-  this.hp = this.maxHp;
-  this.speed = 95 + game.time * 0.9 + rand(0, 45);
-  this.affixes = new Set();
+          this.dashCd = rand(2.8, 4.2);
+          this.dashTime = 0;
+          this.dashVx = 0;
+          this.dashVy = 0;
+          this.shieldCd = rand(5.2, 7.2);
+          this.shieldTime = 0;
+          this.summonCd = rand(4.8, 6.8);
+        } else {
+          this.r = 11;
+          this.maxHp = Math.max(1, Math.floor((1 + game.time / 40) * hpScale));
+          this.hp = this.maxHp;
+          this.speed = 80 + game.time * 0.55 + rand(0, 30);
+          this.affixes = new Set();
         }
       }
 
@@ -345,22 +344,38 @@
 
       takeDamage(dmg) {
         if (!this.alive) return;
-        let final = dmg;
-        if (this.shieldActive) final *= 0.25; // 護盾減傷
-        this.hp -= final;
+        let real = dmg;
+        if (this.shieldActive) real *= 0.25;
+        this.hp -= real;
       }
 
       update(dt) {
         if (!this.alive) return;
+        if (this.touchCd > 0) this.touchCd -= dt;
 
         if (this.isBoss) {
           if (this.affixes.has("shield")) {
             this.shieldCd -= dt;
             if (this.shieldCd <= 0) {
-              this.shieldCd = rand(5, 7);
-              this.shieldTime = 1.25;
+              this.shieldCd = rand(5.4, 7.4);
+              this.shieldTime = 1.15;
             }
             this.shieldTime = Math.max(0, this.shieldTime - dt);
+          }
+
+          if (this.affixes.has("summon")) {
+            this.summonCd -= dt;
+            if (this.summonCd <= 0) {
+              this.summonCd = rand(5.2, 7.2);
+              for (let i = 0; i < 2; i++) {
+                game.enemies.push(new Enemy({
+                  isBoss: false,
+                  x: this.x + rand(-26, 26),
+                  y: this.y + rand(-8, 8),
+                  hpScale: 1 + game.time / 170
+                }));
+              }
+            }
           }
 
           if (this.affixes.has("dash")) {
@@ -369,41 +384,33 @@
               this.x += this.dashVx * dt;
               this.y += this.dashVy * dt;
               return;
-            } else {
-              this.dashCd -= dt;
-              if (this.dashCd <= 0) {
-                this.dashCd = rand(2.6, 3.8);
-                this.dashTime = 0.35;
-                const dx = game.player.x - this.x;
-                const dy = game.player.y - this.y;
-                const d = Math.hypot(dx, dy) || 1;
-                const dashSpeed = this.speed * 2.2;
-                this.dashVx = dx / d * dashSpeed;
-                this.dashVy = dy / d * dashSpeed;
-              }
+            }
+            this.dashCd -= dt;
+            if (this.dashCd <= 0) {
+              this.dashCd = rand(3.0, 4.0);
+              this.dashTime = 0.28;
+              const dx = game.player.x - this.x;
+              const dy = game.player.y - this.y;
+              const d = Math.hypot(dx, dy) || 1;
+              const dashSpeed = Math.min(this.maxSpeed + 35, 155);
+              this.dashVx = (dx / d) * dashSpeed;
+              this.dashVy = (dy / d) * dashSpeed;
             }
           }
 
-          if (this.affixes.has("summon")) {
-            this.summonCd -= dt;
-            if (this.summonCd <= 0) {
-              this.summonCd = rand(4.2, 6.2);
-              for (let i = 0; i < 2; i++) {
-                game.enemies.push(new Enemy({
-                  isBoss: false,
-                  x: this.x + rand(-32, 32),
-                  y: this.y + rand(-10, 10),
-                  hpScale: 1 + game.time / 140
-                }));
-              }
-            }
-          }
+          // Boss 持續追玩家，但有速度上限
+          const dx = game.player.x - this.x;
+          const dy = game.player.y - this.y;
+          const d = Math.hypot(dx, dy) || 1;
+          const chase = Math.min(this.speed, this.maxSpeed);
+          this.x += (dx / d) * chase * dt;
+          this.y += (dy / d) * chase * dt;
+        } else {
+          const dx = game.player.x - this.x;
+          const steer = clamp(dx / 170, -1, 1);
+          this.x += steer * 70 * dt;
+          this.y += this.speed * dt;
         }
-
-        const dx = game.player.x - this.x;
-        const home = clamp(dx / 150, -1, 1);
-        this.x += home * (70 + game.time * 0.2 + (this.isBoss ? 20 : 0)) * dt;
-        this.y += this.speed * dt;
       }
 
       draw() {
@@ -413,24 +420,24 @@
         if (slimeImg.complete && slimeImg.naturalWidth) {
           ctx.drawImage(slimeImg, this.x - s / 2, this.y - s / 2, s, s);
         } else {
-          ctx.fillStyle = this.isBoss ? "#ff9a9a" : "#82ff8f";
+          ctx.fillStyle = this.isBoss ? "#ff9e9e" : "#86ff93";
           ctx.fillRect(this.x - this.r, this.y - this.r, this.r * 2, this.r * 2);
         }
 
         if (this.isBoss) {
-          // Boss 血條
           ctx.fillStyle = "#000";
-          ctx.fillRect(this.x - 36, this.y - this.r - 12, 72, 5);
-          const ratio = Math.max(0, this.hp / this.maxHp);
-          ctx.fillStyle = this.shieldActive ? "#8ac4ff" : "#ff5a5a";
-          ctx.fillRect(this.x - 36, this.y - this.r - 12, 72 * ratio, 5);
+          ctx.fillRect(this.x - 34, this.y - this.r - 11, 68, 5);
+          const hpRatio = Math.max(0, this.hp / this.maxHp);
+          ctx.fillStyle = this.shieldActive ? "#8fc8ff" : "#ff5b5b";
+          ctx.fillRect(this.x - 34, this.y - this.r - 11, 68 * hpRatio, 5);
 
-          // 詞綴文字
-          const names = [...this.affixes].map(affixNameZh).join(" ");
-          ctx.font = "bold 11px monospace";
-          ctx.textAlign = "center";
-          ctx.fillStyle = "#ffe082";
-          ctx.fillText(names, this.x, this.y - this.r - 18);
+          const label = [...this.affixes].map(affixZh).join(" ");
+          if (label) {
+            ctx.font = "bold 11px monospace";
+            ctx.textAlign = "center";
+            ctx.fillStyle = "#ffe187";
+            ctx.fillText(label, this.x, this.y - this.r - 16);
+          }
         }
       }
     }
@@ -444,13 +451,14 @@
       upgrades: { pierce: 0, spread: 0, bounce: 0, explode: 0 },
       score: 0,
       time: 0,
-      spawnTimer: 0,
-      bossTimer: 15,
-      bossCount: 0,
       combo: 0,
       comboTimer: 0,
       over: false,
-      upgradeOpen: false
+      upgradeOpen: false,
+      spawnTimer: 0,
+      bossTimer: 20,
+      bossCount: 0,
+      bossInterval: 10
     };
 
     const input = { x: 0, y: 0 };
@@ -467,92 +475,74 @@
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
 
-    // 防止行動裝置滾動
     document.addEventListener("touchstart", e => e.preventDefault(), { passive: false });
     document.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
 
-    function affixNameZh(key) {
-      if (key === "split") return "分裂";
-      if (key === "dash") return "衝刺";
-      if (key === "shield") return "護盾";
-      if (key === "summon") return "召喚";
-      return key;
-    }
-
-    function pickBossAffixes(t, bossIndex) {
-  if (bossIndex === 1) return []; // 第一隻 Boss 不帶詞綴
-
-  const pool = ["split", "dash", "shield", "summon"];
-  // 30s 前後開始 1 個，後續再慢慢加到 3 個
-  const count = clamp(1 + Math.floor((t - 30) / 35), 1, 3);
-  const picked = [];
-  while (picked.length < count) {
-    const a = pool[randi(0, pool.length - 1)];
-    if (!picked.includes(a)) picked.push(a);
-  }
-  return picked;
-    }
-
     function spawnPlayerBullets() {
       const spreadLv = game.upgrades.spread;
-      const rows = 1 + spreadLv; // 散射 Lv1 => 多一排
+      const rows = 1 + spreadLv;
       const gap = 13;
       const center = (rows - 1) / 2;
       const speed = 700;
+
       for (let i = 0; i < rows; i++) {
-        const offsetX = (i - center) * gap;
-        const angle = (i - center) * 0.05; // 微角度
-        const vx = Math.sin(angle) * speed;
-        const vy = -Math.cos(angle) * speed;
+        const offset = (i - center) * gap;
+        const ang = (i - center) * 0.045;
+        const vx = Math.sin(ang) * speed;
+        const vy = -Math.cos(ang) * speed;
         game.bullets.push({
-          x: game.player.x + offsetX,
+          x: game.player.x + offset,
           y: game.player.y - 14,
-          vx, vy, r: 5,
-          baseDamage: 1,
-          pierceLeft: game.upgrades.pierce, // 可額外穿過幾隻
-          bounceLeft: game.upgrades.bounce,
-          alive: true
+          vx, vy,
+          r: 5,
+          dmg: 1,
+          alive: true,
+          pierceLeft: game.upgrades.pierce,
+          bounceLeft: game.upgrades.bounce
         });
       }
+    }
+
+    function enemySpawnPattern(timeSec) {
+      // 慢熱曲線：前期明顯降低
+      if (timeSec < 20) return { interval: 0.95, batch: 1, hpScale: 1.0 };
+      if (timeSec < 45) return { interval: 0.75, batch: 2, hpScale: 1.05 };
+      if (timeSec < 80) return { interval: 0.60, batch: 3, hpScale: 1.1 };
+      if (timeSec < 120) return { interval: 0.48, batch: 4, hpScale: 1.2 };
+      return { interval: 0.36, batch: 5 + Math.floor((timeSec - 120) / 40), hpScale: 1.35 };
     }
 
     function spawnEnemies(dt) {
       game.spawnTimer -= dt;
       game.bossTimer -= dt;
 
-      const diff = Math.min(2.2, game.time / 60);
-      const interval = Math.max(0.08, 0.5 - diff * 0.23);
-      const batch = 2 + Math.floor(game.time / 12); // 難度大幅增加
-
+      const pat = enemySpawnPattern(game.time);
       if (game.spawnTimer <= 0) {
-        game.spawnTimer = interval;
-        for (let i = 0; i < batch; i++) {
+        game.spawnTimer = pat.interval;
+        for (let i = 0; i < pat.batch; i++) {
           game.enemies.push(new Enemy({
             isBoss: false,
-            hpScale: 1 + game.time / 80
+            hpScale: pat.hpScale + game.time / 260
           }));
         }
       }
 
       if (game.bossTimer <= 0) {
-        game.bossTimer = 10;
         game.bossCount += 1;
+        game.bossTimer = game.bossInterval;
         game.enemies.push(new Enemy({
           isBoss: true,
           bossIndex: game.bossCount,
-          hpScale: 1 + game.time / 90
+          hpScale: 1 + game.time / 170
         }));
       }
     }
 
     function createPowerup(x, y) {
-      game.powerups.push({
-        x, y, r: 18, ttl: 14,
-        text: "POWERUP"
-      });
+      game.powerups.push({ x, y, r: 18, ttl: 14, text: "POWERUP" });
     }
 
-    function onEnemyKilled(enemy, fromPlayerBullet = true) {
+    function onEnemyKilled(enemy, addPoint = true) {
       if (!enemy.alive) return;
       enemy.alive = false;
 
@@ -560,24 +550,24 @@
         createPowerup(enemy.x, enemy.y);
 
         if (enemy.affixes.has("split")) {
-          const n = 2 + Math.min(3, Math.floor(game.time / 50));
+          const n = 2 + Math.min(2, Math.floor(game.time / 80));
           for (let i = 0; i < n; i++) {
-            const child = new Enemy({
+            const c = new Enemy({
               isBoss: false,
               x: enemy.x + rand(-26, 26),
               y: enemy.y + rand(-8, 8),
-              hpScale: 1.2 + game.time / 180
+              hpScale: 1.2 + game.time / 220
             });
-            child.r = Math.max(8, enemy.r * 0.48);
-            child.maxHp = Math.max(2, Math.floor(enemy.maxHp * 0.14));
-            child.hp = child.maxHp;
-            child.speed = enemy.speed * 1.15;
-            game.enemies.push(child);
+            c.r = Math.max(8, enemy.r * 0.5);
+            c.maxHp = Math.max(2, Math.floor(enemy.maxHp * 0.14));
+            c.hp = c.maxHp;
+            c.speed = 92 + rand(0, 24);
+            game.enemies.push(c);
           }
         }
       }
 
-      if (fromPlayerBullet) addScore(enemy.isBoss ? 35 : 4);
+      if (addPoint) addScore(enemy.isBoss ? 30 : 4);
     }
 
     function addScore(base) {
@@ -587,9 +577,8 @@
 
       const comboMulti = 1 + Math.min(3, game.combo * 0.08);
       const hpRatio = game.player.hp / game.player.maxHp;
-      const dangerMulti = 1 + (1 - hpRatio) * 0.6; // 危險倍率
-      const gain = Math.round(base * comboMulti * dangerMulti);
-      game.score += gain;
+      const dangerMulti = 1 + (1 - hpRatio) * 0.55;
+      game.score += Math.round(base * comboMulti * dangerMulti);
     }
 
     function resetCombo() {
@@ -597,35 +586,37 @@
       game.comboTimer = 0;
     }
 
-    function closestEnemyFrom(x, y, exceptId, range) {
+    function findBounceTarget(fromEnemyId, x, y, range) {
       let best = null;
-      let bestD = range;
+      let bestDist = range;
       for (const e of game.enemies) {
-        if (!e.alive || e.id === exceptId) continue;
+        if (!e.alive || e.id === fromEnemyId) continue;
         const d = Math.hypot(e.x - x, e.y - y);
-        if (d < bestD) {
+        if (d < bestDist) {
           best = e;
-          bestD = d;
+          bestDist = d;
         }
       }
       return best;
     }
 
-    function explosionDamage(x, y, level, excludeEnemy) {
+    function applyExplosion(x, y, level, exclude) {
       if (level <= 0) return;
-      const radius = 26 + level * 10;
+      const radius = 24 + level * 9;
+      const dmg = 0.6 + level * 0.35;
+
       for (const e of game.enemies) {
-        if (!e.alive || e === excludeEnemy) continue;
+        if (!e.alive || e === exclude) continue;
         const d = Math.hypot(e.x - x, e.y - y);
         if (d <= radius + e.r) {
-          e.takeDamage(1 + level * 0.45);
+          e.takeDamage(dmg);
           if (e.hp <= 0) onEnemyKilled(e, true);
         }
       }
 
       ctx.beginPath();
       ctx.arc(x, y, radius, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(255,180,100,0.7)";
+      ctx.strokeStyle = "rgba(255,190,110,0.65)";
       ctx.lineWidth = 2;
       ctx.stroke();
     }
@@ -636,7 +627,7 @@
         b.x += b.vx * dt;
         b.y += b.vy * dt;
 
-        if (b.y < -30 || b.y > H() + 30 || b.x < -30 || b.x > W() + 30) {
+        if (b.x < -30 || b.x > W() + 30 || b.y < -40 || b.y > H() + 40) {
           b.alive = false;
           continue;
         }
@@ -645,25 +636,24 @@
           if (!e.alive) continue;
           if (!circleHit(b, e)) continue;
 
-          e.takeDamage(b.baseDamage);
-          if (game.upgrades.explode > 0) {
-            explosionDamage(e.x, e.y, game.upgrades.explode, e);
-          }
+          e.takeDamage(b.dmg);
+          if (game.upgrades.explode > 0) applyExplosion(e.x, e.y, game.upgrades.explode, e);
           if (e.hp <= 0) onEnemyKilled(e, true);
 
           let bounced = false;
           if (b.bounceLeft > 0) {
-            const next = closestEnemyFrom(e.x, e.y, e.id, 200);
-            if (next) {
-              const dx = next.x - e.x;
-              const dy = next.y - e.y;
+            const target = findBounceTarget(e.id, e.x, e.y, 210 + game.upgrades.bounce * 25);
+            if (target) {
+              const dx = target.x - e.x;
+              const dy = target.y - e.y;
               const d = Math.hypot(dx, dy) || 1;
-              const speed = 700;
-              b.vx = dx / d * speed;
-              b.vy = dy / d * speed;
+              const sp = 700;
+              b.vx = (dx / d) * sp;
+              b.vy = (dy / d) * sp;
               b.x = e.x;
               b.y = e.y;
               b.bounceLeft -= 1;
+              b.dmg *= 0.88;
               bounced = true;
             }
           }
@@ -671,7 +661,7 @@
           if (!bounced) {
             if (b.pierceLeft > 0) {
               b.pierceLeft -= 1;
-              b.y -= 4;
+              b.y -= 2;
             } else {
               b.alive = false;
             }
@@ -682,40 +672,53 @@
       game.bullets = game.bullets.filter(b => b.alive);
     }
 
-    function updatePowerups(dt) {
-      for (const p of game.powerups) {
-        p.ttl -= dt;
-        p.y += 10 * dt;
-        if (circleHit(p, game.player)) {
-          p.ttl = -1;
-          game.pendingUpgrade += 1;
-          openUpgradeIfNeeded();
+    function updateEnemies(dt) {
+      for (const e of game.enemies) {
+        if (!e.alive) continue;
+        e.update(dt);
+
+        if (!e.isBoss && e.y > H() + e.r + 20) {
+          e.alive = false;
+          game.player.hurt(3);
+          continue;
+        }
+
+        if (circleHit(e, game.player)) {
+          if (e.isBoss) {
+            if (e.touchCd <= 0) {
+              e.touchCd = 0.8;
+              game.player.hurt(9);
+            }
+          } else {
+            e.alive = false;
+            game.player.hurt(8);
+          }
         }
       }
-      game.powerups = game.powerups.filter(p => p.ttl > 0);
+      game.enemies = game.enemies.filter(e => e.alive);
     }
 
     function openUpgradeIfNeeded() {
       if (game.pendingUpgrade <= 0 || game.upgradeOpen || game.over) return;
       game.upgradeOpen = true;
       upgradeModal.style.display = "flex";
-      refreshUpgradeButtons();
+      refreshUpgradeUI();
     }
 
-    function refreshUpgradeButtons() {
+    function refreshUpgradeUI() {
       const u = game.upgrades;
-      upPierce.textContent = `穿透 Lv${u.pierce}：再多穿 ${u.pierce + 1} 隻`;
-      upSpread.textContent = `散射 Lv${u.spread}：再增加 1 排子彈`;
-      upBounce.textContent = `彈射 Lv${u.bounce}：命中後可再彈 1 次`;
+      upPierce.textContent = `穿透 Lv${u.pierce}：子彈再多穿 1 隻`;
+      upSpread.textContent = `散射 Lv${u.spread}：子彈再多 1 排`;
+      upBounce.textContent = `彈射 Lv${u.bounce}：命中後可多彈 1 次`;
       upExplode.textContent = `爆炸 Lv${u.explode}：擴大範圍傷害`;
-      queueInfo.textContent = `待選升級：${game.pendingUpgrade}`;
+      queueText.textContent = `待選升級：${game.pendingUpgrade}`;
     }
 
     function chooseUpgrade(type) {
       game.upgrades[type] += 1;
       game.pendingUpgrade -= 1;
       if (game.pendingUpgrade > 0) {
-        refreshUpgradeButtons();
+        refreshUpgradeUI();
       } else {
         game.upgradeOpen = false;
         upgradeModal.style.display = "none";
@@ -732,58 +735,43 @@
     upBounce.addEventListener("click", () => chooseUpgrade("bounce"));
     upExplode.addEventListener("click", () => chooseUpgrade("explode"));
 
-    function updateEnemies(dt) {
-      for (const e of game.enemies) {
-        if (!e.alive) continue;
-        e.update(dt);
-
-        if (e.y > H() + e.r + 20) {
-          e.alive = false;
-          game.player.hurt(e.isBoss ? 18 : 4);
-          continue;
-        }
-
-        if (circleHit(e, game.player)) {
-          e.alive = false;
-          game.player.hurt(e.isBoss ? 20 : 10);
+    function updatePowerups(dt) {
+      for (const p of game.powerups) {
+        p.ttl -= dt;
+        p.y += 10 * dt;
+        if (circleHit(p, game.player)) {
+          p.ttl = -1;
+          game.pendingUpgrade += 1;
+          openUpgradeIfNeeded();
         }
       }
-      game.enemies = game.enemies.filter(e => e.alive);
+      game.powerups = game.powerups.filter(p => p.ttl > 0);
     }
 
     function updateHUD() {
       const comboMulti = 1 + Math.min(3, game.combo * 0.08);
-      const dangerMulti = 1 + (1 - game.player.hp / game.player.maxHp) * 0.6;
-      const totalMulti = comboMulti * dangerMulti;
+      const dangerMulti = 1 + (1 - game.player.hp / game.player.maxHp) * 0.55;
+      const total = comboMulti * dangerMulti;
 
       hudHp.textContent = `生命：${Math.ceil(game.player.hp)}`;
       hudScore.textContent = `分數：${game.score}`;
       hudTime.textContent = `時間：${game.time.toFixed(1)}s`;
       hudCombo.textContent = `連殺：${game.combo}`;
-      hudMulti.textContent = `倍率：x${totalMulti.toFixed(2)}`;
-      hudSkillPen.textContent = `穿透：Lv${game.upgrades.pierce}`;
-      hudSkillSpr.textContent = `散射：Lv${game.upgrades.spread}`;
-      hudSkillBnc.textContent = `彈射：Lv${game.upgrades.bounce}`;
-      hudSkillExp.textContent = `爆炸：Lv${game.upgrades.explode}`;
+      hudMulti.textContent = `倍率：x${total.toFixed(2)}`;
+      hudPen.textContent = `穿透：Lv${game.upgrades.pierce}`;
+      hudSpr.textContent = `散射：Lv${game.upgrades.spread}`;
+      hudBnc.textContent = `彈射：Lv${game.upgrades.bounce}`;
+      hudExp.textContent = `爆炸：Lv${game.upgrades.explode}`;
     }
 
-    function drawBackground() {
-      ctx.fillStyle = "#0c1220";
+    function drawBg() {
+      ctx.fillStyle = "#0d1424";
       ctx.fillRect(0, 0, W(), H());
       ctx.fillStyle = "rgba(255,255,255,0.16)";
-      for (let i = 0; i < 70; i++) {
-        const y = (i * 35 + (game.time * 180) % H()) % H();
-        const x = (i * 67) % W();
+      for (let i = 0; i < 65; i++) {
+        const y = (i * 37 + (game.time * 165) % H()) % H();
+        const x = (i * 73) % W();
         ctx.fillRect(x, y, 2, 2);
-      }
-    }
-
-    function drawPowerups() {
-      for (const p of game.powerups) {
-        ctx.fillStyle = "#ffd95a";
-        ctx.font = "bold 16px monospace";
-        ctx.textAlign = "center";
-        ctx.fillText(p.text, p.x, p.y);
       }
     }
 
@@ -793,14 +781,23 @@
         if (bulletImg.complete && bulletImg.naturalWidth) {
           ctx.drawImage(bulletImg, b.x - s / 2, b.y - s / 2, s, s);
         } else {
-          ctx.fillStyle = "#ffe57d";
+          ctx.fillStyle = "#ffe585";
           ctx.fillRect(b.x - 2, b.y - 6, 4, 12);
         }
       }
     }
 
+    function drawPowerups() {
+      for (const p of game.powerups) {
+        ctx.font = "bold 16px monospace";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#ffdf63";
+        ctx.fillText(p.text, p.x, p.y);
+      }
+    }
+
     function draw() {
-      drawBackground();
+      drawBg();
       drawBullets();
       for (const e of game.enemies) e.draw();
       drawPowerups();
@@ -809,7 +806,7 @@
     }
 
     function openGameOver() {
-      resultText.textContent = `生存 ${game.time.toFixed(1)} 秒，擊殺分數 ${game.score}`;
+      resultText.textContent = `生存 ${game.time.toFixed(1)} 秒，分數 ${game.score}`;
       gameOverModal.style.display = "flex";
     }
 
@@ -822,19 +819,19 @@
       game.upgrades = { pierce: 0, spread: 0, bounce: 0, explode: 0 };
       game.score = 0;
       game.time = 0;
-      game.spawnTimer = 0;
-      game.bossTimer = 10;
-      game.bossCount = 0;
       game.combo = 0;
       game.comboTimer = 0;
       game.over = false;
       game.upgradeOpen = false;
+      game.spawnTimer = 0;
+      game.bossTimer = 20; // 首隻 Boss 延後
+      game.bossCount = 0;
 
       input.x = 0;
       input.y = 0;
       stick.style.transform = "translate(0,0)";
-      gameOverModal.style.display = "none";
       upgradeModal.style.display = "none";
+      gameOverModal.style.display = "none";
     }
 
     restartBtn.addEventListener("touchstart", resetGame, { passive: false });
@@ -846,10 +843,8 @@
       joyCenter.y = r.top + r.height / 2;
       joyRadius = r.width * 0.36;
     }
-    refreshJoystick();
-    window.addEventListener("resize", refreshJoystick);
 
-    function moveStickByTouch(t) {
+    function updateJoyByTouch(t) {
       const dx = t.clientX - joyCenter.x;
       const dy = t.clientY - joyCenter.y;
       const len = Math.hypot(dx, dy) || 1;
@@ -861,24 +856,24 @@
       stick.style.transform = `translate(${nx * c}px, ${ny * c}px)`;
     }
 
-    joystick.addEventListener("touchstart", (e) => {
+    joystick.addEventListener("touchstart", e => {
       if (joyTouchId !== null || game.over) return;
       const t = e.changedTouches[0];
       joyTouchId = t.identifier;
-      moveStickByTouch(t);
+      updateJoyByTouch(t);
     }, { passive: false });
 
-    document.addEventListener("touchmove", (e) => {
+    document.addEventListener("touchmove", e => {
       if (joyTouchId === null) return;
       for (const t of e.changedTouches) {
         if (t.identifier === joyTouchId) {
-          moveStickByTouch(t);
+          updateJoyByTouch(t);
           break;
         }
       }
     }, { passive: false });
 
-    function endJoyTouch(e) {
+    function endJoystick(e) {
       if (joyTouchId === null) return;
       for (const t of e.changedTouches) {
         if (t.identifier === joyTouchId) {
@@ -890,12 +885,13 @@
         }
       }
     }
-    document.addEventListener("touchend", endJoyTouch, { passive: false });
-    document.addEventListener("touchcancel", endJoyTouch, { passive: false });
+
+    document.addEventListener("touchend", endJoystick, { passive: false });
+    document.addEventListener("touchcancel", endJoystick, { passive: false });
 
     function update(dt) {
       if (game.over) return;
-      if (game.upgradeOpen) return; // 升級時暫停遊戲
+      if (game.upgradeOpen) return;
 
       game.time += dt;
       if (game.comboTimer > 0) {
@@ -918,9 +914,10 @@
       requestAnimationFrame(loop);
     }
 
+    resizeCanvas();
     resetGame();
     requestAnimationFrame(loop);
   </script>
 </body>
 </html>
-
+```
