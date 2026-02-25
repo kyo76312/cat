@@ -1,9 +1,10 @@
+```html
 <!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>貓咪生存彈幕1203</title>
+  <title>貓咪生存彈幕1210</title>
   <style>
     :root {
       --bg-a: #0b1018;
@@ -27,7 +28,7 @@
     #hud {
       position: fixed; left: 10px; top: 10px; z-index: 10;
       background: var(--panel); border-radius: 8px; padding: 8px 10px;
-      font-size: 13px; line-height: 1.35; min-width: 185px;
+      font-size: 13px; line-height: 1.35; min-width: 190px;
     }
     #controls { position: fixed; inset: 0; pointer-events: none; z-index: 20; }
     #joystick {
@@ -76,6 +77,7 @@
   <div id="hudSpr">散射：Lv0</div>
   <div id="hudBnc">彈射：Lv0</div>
   <div id="hudExp">爆炸：Lv0</div>
+  <div id="hudHeal">回復次數：0</div>
 </div>
 
 <div id="controls">
@@ -85,11 +87,12 @@
 <div id="upgradeModal" class="overlay">
   <div class="panel">
     <h2>選擇升級</h2>
-    <p class="desc">吃到 POWERUP：四選一</p>
+    <p class="desc">吃到 POWERUP：五選一</p>
     <button id="upPierce" class="up-btn"></button>
     <button id="upSpread" class="up-btn"></button>
     <button id="upBounce" class="up-btn"></button>
     <button id="upExplode" class="up-btn"></button>
+    <button id="upHeal" class="up-btn"></button>
     <p id="queueText" class="desc"></p>
   </div>
 </div>
@@ -116,6 +119,7 @@ const hudPen = document.getElementById("hudPen");
 const hudSpr = document.getElementById("hudSpr");
 const hudBnc = document.getElementById("hudBnc");
 const hudExp = document.getElementById("hudExp");
+const hudHeal = document.getElementById("hudHeal");
 
 const joystick = document.getElementById("joystick");
 const stick = document.getElementById("stick");
@@ -125,6 +129,7 @@ const upPierce = document.getElementById("upPierce");
 const upSpread = document.getElementById("upSpread");
 const upBounce = document.getElementById("upBounce");
 const upExplode = document.getElementById("upExplode");
+const upHeal = document.getElementById("upHeal");
 const queueText = document.getElementById("queueText");
 
 const gameOverModal = document.getElementById("gameOverModal");
@@ -145,7 +150,9 @@ const randi = (a, b) => Math.floor(rand(a, b + 1));
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 function circleHit(a, b) {
-  const dx = a.x - b.x, dy = a.y - b.y, rr = a.r + b.r;
+  const ar = a.hitR ?? a.r;
+  const br = b.hitR ?? b.r;
+  const dx = a.x - b.x, dy = a.y - b.y, rr = ar + br;
   return dx * dx + dy * dy <= rr * rr;
 }
 function affixZh(k) {
@@ -175,6 +182,7 @@ class Player {
     this.x = W() * 0.5;
     this.y = H() * 0.82;
     this.r = 12;
+    this.hitR = 8.5; // 縮小受擊判定，修正莫名扣血
     this.drawHalf = 14;
     this.boundPad = this.drawHalf + 2;
     this.maxHp = 100;
@@ -183,12 +191,11 @@ class Player {
     this.fireCd = 0;
     this.fireInterval = 0.11;
     this.hurtFlash = 0;
+    this.invuln = 0;
   }
   update(dt) {
     this.x += input.x * this.speed * dt;
     this.y += input.y * this.speed * dt;
-
-    // 嚴格邊界，角色圖不會超出畫面
     this.x = clamp(this.x, this.boundPad, W() - this.boundPad);
     this.y = clamp(this.y, this.boundPad, H() - this.boundPad);
 
@@ -198,11 +205,14 @@ class Player {
       spawnPlayerBullets();
     }
     if (this.hurtFlash > 0) this.hurtFlash -= dt;
+    if (this.invuln > 0) this.invuln -= dt;
   }
   hurt(dmg) {
+    if (this.invuln > 0) return;
     this.hp -= dmg;
     if (this.hp < 0) this.hp = 0;
-    this.hurtFlash = 0.16;
+    this.hurtFlash = 0.18;
+    this.invuln = 0.35; // 無敵幀避免連續誤扣
     resetCombo();
     if (this.hp <= 0) {
       game.over = true;
@@ -218,7 +228,7 @@ class Player {
       ctx.fillRect(this.x - 10, this.y - 10, 20, 20);
     }
     if (this.hurtFlash > 0) {
-      ctx.fillStyle = "rgba(255,60,60,0.45)";
+      ctx.fillStyle = "rgba(255,60,60,0.42)";
       ctx.fillRect(this.x - s / 2, this.y - s / 2, s, s);
     }
   }
@@ -238,12 +248,14 @@ class Enemy {
     if (isBoss) {
       const phase = Math.max(0, bossIndex - 1);
       if (bossIndex === 1) {
-        this.r = 20; this.maxHp = 36; this.hp = 36;
+        this.r = 20; this.hitR = 12;
+        this.maxHp = 36; this.hp = 36;
         this.speed = 85; this.maxSpeed = 98;
         this.affixes = new Set();
       } else {
         const size = 1 + phase * 0.1;
         this.r = 20 * size;
+        this.hitR = this.r * 0.6;
         this.maxHp = Math.floor((42 + phase * 10 + game.time * 0.11) * hpScale);
         this.hp = this.maxHp;
         this.speed = 90 + phase * 3 + game.time * 0.03;
@@ -251,7 +263,6 @@ class Enemy {
         this.affixes = new Set(pickBossAffixes(game.time, bossIndex));
       }
 
-      // 護盾詞綴：先打穿護盾才扣血
       if (this.affixes.has("shield")) {
         this.shieldMax = Math.floor(this.maxHp * 0.6);
         this.shield = this.shieldMax;
@@ -267,9 +278,10 @@ class Enemy {
       this.summonCd = rand(5.2, 7.2);
     } else {
       this.r = 10.5;
+      this.hitR = 7.6;
       this.maxHp = Math.max(1, Math.floor((1 + game.time / 55) * hpScale));
       this.hp = this.maxHp;
-      this.speed = 68 + game.time * 0.42 + rand(0, 20); // 前期再降速
+      this.speed = 68 + game.time * 0.42 + rand(0, 20);
       this.affixes = new Set();
       this.shield = 0;
       this.shieldMax = 0;
@@ -278,11 +290,10 @@ class Enemy {
 
   takeDamage(dmg) {
     if (!this.alive) return;
-    // 先扣護盾
     if (this.shield > 0) {
       this.shield -= dmg;
       if (this.shield < 0) {
-        this.hp += this.shield; // shield為負值，等價把溢出傷害扣到hp
+        this.hp += this.shield;
         this.shield = 0;
       }
     } else {
@@ -327,7 +338,6 @@ class Enemy {
         }
       }
 
-      // Boss持續追，不消失，且速度封頂
       const dx = game.player.x - this.x, dy = game.player.y - this.y;
       const d = Math.hypot(dx, dy) || 1;
       const chase = Math.min(this.speed, this.maxSpeed);
@@ -351,15 +361,12 @@ class Enemy {
     }
 
     if (this.isBoss) {
-      // 護盾條（上）
       if (this.shieldMax > 0 && this.shield > 0) {
         ctx.fillStyle = "#000";
         ctx.fillRect(this.x - 34, this.y - this.r - 17, 68, 4);
         ctx.fillStyle = "#72c8ff";
         ctx.fillRect(this.x - 34, this.y - this.r - 17, 68 * (this.shield / this.shieldMax), 4);
       }
-
-      // 血條（下）
       ctx.fillStyle = "#000";
       ctx.fillRect(this.x - 34, this.y - this.r - 11, 68, 5);
       ctx.fillStyle = "#ff5b5b";
@@ -378,7 +385,7 @@ class Enemy {
 
 const game = {
   player: null, bullets: [], enemies: [], powerups: [],
-  pendingUpgrade: 0, upgrades: { pierce: 0, spread: 0, bounce: 0, explode: 0 },
+  pendingUpgrade: 0, upgrades: { pierce: 0, spread: 0, bounce: 0, explode: 0, healCount: 0 },
   score: 0, time: 0, combo: 0, comboTimer: 0,
   over: false, upgradeOpen: false,
   spawnTimer: 0, bossTimer: 25, bossCount: 0, bossInterval: 10
@@ -405,20 +412,19 @@ function spawnPlayerBullets() {
     game.bullets.push({
       x: game.player.x + off, y: game.player.y - 14,
       vx: Math.sin(ang) * speed, vy: -Math.cos(ang) * speed,
-      r: 5, dmg: 1, alive: true,
+      r: 5, hitR: 4.2, dmg: 1, alive: true,
       pierceLeft: game.upgrades.pierce, bounceLeft: game.upgrades.bounce
     });
   }
 }
 
 function enemySpawnPattern(t) {
-  // 重新下修初期難度
-  if (t < 25) return { interval: 1.2, batch: 1, hpScale: 0.85 };
-  if (t < 50) return { interval: 0.95, batch: 1, hpScale: 0.95 };
-  if (t < 80) return { interval: 0.78, batch: 2, hpScale: 1.0 };
-  if (t < 120) return { interval: 0.64, batch: 2, hpScale: 1.1 };
-  if (t < 170) return { interval: 0.52, batch: 3, hpScale: 1.2 };
-  return { interval: 0.4, batch: 4 + Math.floor((t - 170) / 45), hpScale: 1.35 };
+  if (t < 30) return { interval: 1.35, batch: 1, hpScale: 0.8 };
+  if (t < 55) return { interval: 1.05, batch: 1, hpScale: 0.9 };
+  if (t < 85) return { interval: 0.84, batch: 2, hpScale: 1.0 };
+  if (t < 125) return { interval: 0.68, batch: 2, hpScale: 1.1 };
+  if (t < 180) return { interval: 0.54, batch: 3, hpScale: 1.2 };
+  return { interval: 0.43, batch: 4 + Math.floor((t - 180) / 50), hpScale: 1.35 };
 }
 
 function spawnEnemies(dt) {
@@ -429,7 +435,7 @@ function spawnEnemies(dt) {
   if (game.spawnTimer <= 0) {
     game.spawnTimer = pat.interval;
     for (let i = 0; i < pat.batch; i++) {
-      game.enemies.push(new Enemy({ isBoss: false, hpScale: pat.hpScale + game.time / 320 }));
+      game.enemies.push(new Enemy({ isBoss: false, hpScale: pat.hpScale + game.time / 360 }));
     }
   }
 
@@ -443,7 +449,7 @@ function spawnEnemies(dt) {
 }
 
 function createPowerup(x, y) {
-  game.powerups.push({ x, y, r: 18, ttl: 14, text: "POWERUP" });
+  game.powerups.push({ x, y, r: 18, hitR: 14, ttl: 14, text: "POWERUP" });
 }
 
 function onEnemyKilled(enemy, addPoint = true) {
@@ -452,7 +458,6 @@ function onEnemyKilled(enemy, addPoint = true) {
 
   if (enemy.isBoss) {
     createPowerup(enemy.x, enemy.y);
-
     if (enemy.affixes.has("split")) {
       const n = 2 + Math.min(2, Math.floor(game.time / 90));
       for (let i = 0; i < n; i++) {
@@ -461,6 +466,7 @@ function onEnemyKilled(enemy, addPoint = true) {
           hpScale: 1.15 + game.time / 260
         });
         c.r = Math.max(8, enemy.r * 0.5);
+        c.hitR = c.r * 0.72;
         c.maxHp = Math.max(2, Math.floor(enemy.maxHp * 0.13));
         c.hp = c.maxHp;
         c.speed = 86 + rand(0, 20);
@@ -498,7 +504,7 @@ function applyExplosion(x, y, lv, exclude) {
   const dmg = 0.6 + lv * 0.35;
   for (const e of game.enemies) {
     if (!e.alive || e === exclude) continue;
-    if (Math.hypot(e.x - x, e.y - y) <= radius + e.r) {
+    if (Math.hypot(e.x - x, e.y - y) <= radius + e.hitR) {
       e.takeDamage(dmg);
       if (e.hp <= 0) onEnemyKilled(e, true);
     }
@@ -551,15 +557,14 @@ function updateEnemies(dt) {
     if (!e.alive) continue;
     e.update(dt);
 
-    if (!e.isBoss && e.y > H() + e.r + 20) {
+    // 小怪出界只移除，不再扣血，避免看似「莫名掉血」
+    if (!e.isBoss && (e.y > H() + e.r + 20 || e.y < -80 || e.x < -80 || e.x > W() + 80)) {
       e.alive = false;
-      game.player.hurt(2);
       continue;
     }
 
     if (circleHit(e, game.player)) {
       if (e.isBoss) {
-        // 修正：Boss碰撞不消失，只用冷卻持續傷害
         if (e.touchCd <= 0) {
           e.touchCd = 0.8;
           game.player.hurt(7);
@@ -585,10 +590,17 @@ function refreshUpgradeUI() {
   upSpread.textContent = `散射 Lv${u.spread}：子彈再多 1 排`;
   upBounce.textContent = `彈射 Lv${u.bounce}：命中後可多彈 1 次`;
   upExplode.textContent = `爆炸 Lv${u.explode}：擴大範圍傷害`;
+  upHeal.textContent = `急救：立即回復 50 生命`;
   queueText.textContent = `待選升級：${game.pendingUpgrade}`;
 }
 function chooseUpgrade(type) {
-  game.upgrades[type] += 1;
+  if (type === "heal") {
+    game.player.hp = Math.min(game.player.maxHp, game.player.hp + 50);
+    game.upgrades.healCount += 1;
+  } else {
+    game.upgrades[type] += 1;
+  }
+
   game.pendingUpgrade -= 1;
   if (game.pendingUpgrade > 0) refreshUpgradeUI();
   else { game.upgradeOpen = false; upgradeModal.style.display = "none"; }
@@ -598,10 +610,13 @@ upPierce.addEventListener("touchstart", () => chooseUpgrade("pierce"), { passive
 upSpread.addEventListener("touchstart", () => chooseUpgrade("spread"), { passive: false });
 upBounce.addEventListener("touchstart", () => chooseUpgrade("bounce"), { passive: false });
 upExplode.addEventListener("touchstart", () => chooseUpgrade("explode"), { passive: false });
+upHeal.addEventListener("touchstart", () => chooseUpgrade("heal"), { passive: false });
+
 upPierce.addEventListener("click", () => chooseUpgrade("pierce"));
 upSpread.addEventListener("click", () => chooseUpgrade("spread"));
 upBounce.addEventListener("click", () => chooseUpgrade("bounce"));
 upExplode.addEventListener("click", () => chooseUpgrade("explode"));
+upHeal.addEventListener("click", () => chooseUpgrade("heal"));
 
 function updatePowerups(dt) {
   for (const p of game.powerups) {
@@ -627,6 +642,7 @@ function updateHUD() {
   hudSpr.textContent = `散射：Lv${game.upgrades.spread}`;
   hudBnc.textContent = `彈射：Lv${game.upgrades.bounce}`;
   hudExp.textContent = `爆炸：Lv${game.upgrades.explode}`;
+  hudHeal.textContent = `回復次數：${game.upgrades.healCount}`;
 }
 
 function drawBg() {
@@ -676,7 +692,7 @@ function resetGame() {
   game.player = new Player();
   game.bullets = []; game.enemies = []; game.powerups = [];
   game.pendingUpgrade = 0;
-  game.upgrades = { pierce: 0, spread: 0, bounce: 0, explode: 0 };
+  game.upgrades = { pierce: 0, spread: 0, bounce: 0, explode: 0, healCount: 0 };
   game.score = 0; game.time = 0; game.combo = 0; game.comboTimer = 0;
   game.over = false; game.upgradeOpen = false;
   game.spawnTimer = 0; game.bossTimer = 25; game.bossCount = 0;
@@ -737,6 +753,7 @@ function update(dt) {
     game.comboTimer -= dt;
     if (game.comboTimer <= 0) game.combo = 0;
   }
+
   game.player.update(dt);
   spawnEnemies(dt);
   updateBullets(dt);
@@ -758,3 +775,4 @@ requestAnimationFrame(loop);
 </script>
 </body>
 </html>
+```
