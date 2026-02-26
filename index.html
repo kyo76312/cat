@@ -1,12 +1,12 @@
-```0436
+0454
 <!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>貓貓生存</title>
+  <title>Hero Survival - 雙搖桿</title>
   <style>
-    :root { --panel: rgba(0,0,0,.45); --joy: 128px; }
+    :root { --panel: rgba(0,0,0,.45); --joy: 126px; }
     * { box-sizing: border-box; }
     html, body {
       margin: 0; width: 100%; height: 100%;
@@ -20,25 +20,20 @@
     }
     #hud {
       position: fixed; left: 10px; top: 10px; z-index: 10;
-      background: var(--panel); border-radius: 8px; padding: 8px 10px; min-width: 255px;
+      background: var(--panel); border-radius: 8px; padding: 8px 10px; min-width: 260px;
       font-size: 13px; line-height: 1.35;
     }
-    #assistBtn {
-      position: fixed; right: 10px; top: 10px; z-index: 11;
-      border: 1px solid #49648e; border-radius: 8px;
-      background: rgba(26,40,64,.85); color: #fff; padding: 8px 10px; font-size: 13px;
-      touch-action: none;
-    }
     #controls { position: fixed; inset: 0; pointer-events: none; z-index: 20; }
-    #joystick {
-      position: absolute; left: 14px; bottom: 14px;
-      width: var(--joy); height: var(--joy); border-radius: 50%;
+    .joy {
+      position: absolute; width: var(--joy); height: var(--joy); border-radius: 50%;
       border: 2px solid rgba(255,255,255,.24); background: rgba(255,255,255,.08);
       pointer-events: auto; touch-action: none;
     }
-    #stick {
-      position: absolute; left: calc(50% - 25px); top: calc(50% - 25px);
-      width: 50px; height: 50px; border-radius: 50%;
+    #joyMove { left: 14px; bottom: 14px; }
+    #joyAim { right: 14px; bottom: 14px; }
+    .knob {
+      position: absolute; left: calc(50% - 24px); top: calc(50% - 24px);
+      width: 48px; height: 48px; border-radius: 50%;
       border: 2px solid rgba(255,255,255,.36); background: rgba(255,255,255,.24);
       transform: translate(0,0);
     }
@@ -62,7 +57,6 @@
 </head>
 <body>
 <canvas id="game"></canvas>
-<button id="assistBtn">輔瞄：開</button>
 
 <div id="hud">
   <div id="hudHp">生命：100</div>
@@ -80,7 +74,8 @@
 </div>
 
 <div id="controls">
-  <div id="joystick"><div id="stick"></div></div>
+  <div class="joy" id="joyMove"><div class="knob" id="knobMove"></div></div>
+  <div class="joy" id="joyAim"><div class="knob" id="knobAim"></div></div>
 </div>
 
 <div id="elementModal" class="overlay">
@@ -115,56 +110,36 @@
 </div>
 
 <script>
-const AFFIX = {
-  TANK:"tank", FAST:"fast", CURSE:"curse", FIRE:"fire", ICE:"ice",
-  LIGHTNING:"lightning", MULTI:"multi", TELEPORT:"teleport", SPLIT:"split"
-};
-const AFFIX_ZH = {
-  tank:"特別強壯", fast:"特別快速", curse:"衰老詛咒", fire:"火焰強化", ice:"冰凍強化",
-  lightning:"閃電強化", multi:"多重射擊", teleport:"傳送", split:"分裂"
-};
+const AFFIX = { TANK:"tank", FAST:"fast", CURSE:"curse", FIRE:"fire", ICE:"ice", LIGHTNING:"lightning", MULTI:"multi", TELEPORT:"teleport", SPLIT:"split" };
+const AFFIX_ZH = { tank:"特別強壯", fast:"特別快速", curse:"衰老詛咒", fire:"火焰強化", ice:"冰凍強化", lightning:"閃電強化", multi:"多重射擊", teleport:"傳送", split:"分裂" };
 
 const MOB_ORDER = [
-  "World01_001_GreenGoo",
-  "World01_003_Bird",
-  "World01_004_WailingPrince",
-  "World01_005_Shello",
-  "World01_006_Witch",
-  "World01_007_Pirate",
-  "World01_002_Salamander",
-  "World04_002_ ScoutMachine",
-  "World04_003_ Outlaw",
-  "World04_001_ LaserDrone"
+  "World01_001_GreenGoo", "World01_003_Bird", "World01_004_WailingPrince", "World01_005_Shello",
+  "World01_006_Witch", "World01_007_Pirate", "World01_002_Salamander",
+  "World04_002_ ScoutMachine", "World04_003_ Outlaw", "World04_001_ LaserDrone"
 ];
 
 const MOB_STATS = {
-  "World01_001_GreenGoo":       { hp:2,  speed:70,  size:11,   dmg:5 },
-  "World01_003_Bird":           { hp:3,  speed:78,  size:11,   dmg:5.5 },
-  "World01_004_WailingPrince":  { hp:4,  speed:85,  size:11.5, dmg:6 },
-  "World01_005_Shello":         { hp:5,  speed:92,  size:12,   dmg:6.2 },
-  "World01_006_Witch":          { hp:6,  speed:98,  size:12.5, dmg:6.5 },
-  "World01_007_Pirate":         { hp:7,  speed:104, size:13,   dmg:7 },
-  "World01_002_Salamander":     { hp:9,  speed:110, size:13.5, dmg:7.5 },
-  "World04_002_ ScoutMachine":  { hp:11, speed:116, size:14,   dmg:8 },
-  "World04_003_ Outlaw":        { hp:13, speed:122, size:14.5, dmg:8.5 },
-  "World04_001_ LaserDrone":    { hp:16, speed:128, size:15,   dmg:9 }
+  "World01_001_GreenGoo": { hp:2, speed:70, size:11, dmg:5 },
+  "World01_003_Bird": { hp:3, speed:78, size:11, dmg:5.5 },
+  "World01_004_WailingPrince": { hp:4, speed:85, size:11.5, dmg:6 },
+  "World01_005_Shello": { hp:5, speed:92, size:12, dmg:6.2 },
+  "World01_006_Witch": { hp:6, speed:98, size:12.5, dmg:6.5 },
+  "World01_007_Pirate": { hp:7, speed:104, size:13, dmg:7 },
+  "World01_002_Salamander": { hp:9, speed:110, size:13.5, dmg:7.5 },
+  "World04_002_ ScoutMachine": { hp:11, speed:116, size:14, dmg:8 },
+  "World04_003_ Outlaw": { hp:13, speed:122, size:14.5, dmg:8.5 },
+  "World04_001_ LaserDrone": { hp:16, speed:128, size:15, dmg:9 }
 };
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 ctx.imageSmoothingEnabled = false;
 
-const heroImg = new Image();
-heroImg.src = "assets/hero.png";
-const bulletImg = new Image();
-bulletImg.src = "assets/bullet.png";
-
+const heroImg = new Image(); heroImg.src = "assets/hero.png";
+const bulletImg = new Image(); bulletImg.src = "assets/bullet.png";
 const mobImages = {};
-for (const k of MOB_ORDER) {
-  const img = new Image();
-  img.src = `assets/${k}.png`;
-  mobImages[k] = img;
-}
+for (const k of MOB_ORDER) { const img = new Image(); img.src = `assets/${k}.png`; mobImages[k] = img; }
 
 const hudHp = document.getElementById("hudHp");
 const hudScore = document.getElementById("hudScore");
@@ -179,9 +154,10 @@ const hudBnc = document.getElementById("hudBnc");
 const hudDmg = document.getElementById("hudDmg");
 const hudBuff = document.getElementById("hudBuff");
 
-const assistBtn = document.getElementById("assistBtn");
-const joystick = document.getElementById("joystick");
-const stick = document.getElementById("stick");
+const joyMove = document.getElementById("joyMove");
+const joyAim = document.getElementById("joyAim");
+const knobMove = document.getElementById("knobMove");
+const knobAim = document.getElementById("knobAim");
 
 const elementModal = document.getElementById("elementModal");
 const pickFire = document.getElementById("pickFire");
@@ -207,48 +183,73 @@ const rand = (a,b) => Math.random()*(b-a)+a;
 const randi = (a,b) => Math.floor(rand(a,b+1));
 const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
 
-const input = { x:0, y:0 };
-let joyId = null, joyCenter = {x:0,y:0}, joyR = 0, lastTs = 0;
-let enemyIdSeq = 1;
+const moveInput = {x:0,y:0};
+const aimInput = {x:0,y:0};
+let leftTouchId = null, rightTouchId = null;
+let leftCenter = {x:0,y:0}, rightCenter = {x:0,y:0}, leftR = 0, rightR = 0;
+let lastTs = 0, enemyIdSeq = 1;
 
 const bg = { starsA: [], starsB: [], fog: [] };
-
 const game = {
-  player:null,
-  enemies:[],
-  playerBullets:[],
-  enemyBullets:[],
-  powerups:[],
+  player:null, enemies:[], playerBullets:[], enemyBullets:[], powerups:[],
   effects:{ rings:[], lines:[] },
-  score:0, time:0,
-  combo:0, comboTimer:0,
+  score:0, time:0, combo:0, comboTimer:0,
   spawnTimer:0, bossTimer:20, bossInterval:12, bossCount:0,
   over:false, paused:false, pendingPowerup:0, firstPowerupGiven:false,
   element:null, upgrades:{ elementLv:0, spread:0, bounce:0, damage:0 },
-  aimAssist:true,
   frenzy:{ time:0, rateMul:1.4, dmgMul:1.25, milestone:0 }
 };
 
 function initBackground() {
-  bg.starsA = [];
-  bg.starsB = [];
-  bg.fog = [];
+  bg.starsA = []; bg.starsB = []; bg.fog = [];
   for (let i=0;i<60;i++) bg.starsA.push({ x:rand(0,W()), y:rand(0,H()), s:rand(1,2), v:rand(8,18) });
   for (let i=0;i<35;i++) bg.starsB.push({ x:rand(0,W()), y:rand(0,H()), s:rand(2,3), v:rand(20,36) });
   for (let i=0;i<7;i++) bg.fog.push({ x:rand(0,W()), y:rand(0,H()), r:rand(60,130), dx:rand(-8,8), dy:rand(-8,8) });
 }
+function updateBackground(dt) {
+  for (const s of bg.starsA){ s.y += s.v*dt; if (s.y>H()+2){ s.y=-2; s.x=rand(0,W()); } }
+  for (const s of bg.starsB){ s.y += s.v*dt; if (s.y>H()+3){ s.y=-3; s.x=rand(0,W()); } }
+  for (const f of bg.fog){
+    f.x += f.dx*dt; f.y += f.dy*dt;
+    if (f.x < -f.r) f.x = W()+f.r; if (f.x > W()+f.r) f.x = -f.r;
+    if (f.y < -f.r) f.y = H()+f.r; if (f.y > H()+f.r) f.y = -f.r;
+  }
+}
+function drawBackground() {
+  const g = ctx.createLinearGradient(0,0,0,H());
+  g.addColorStop(0,"#0b1120"); g.addColorStop(1,"#152743");
+  ctx.fillStyle = g; ctx.fillRect(0,0,W(),H());
+
+  for (const f of bg.fog){
+    const rg = ctx.createRadialGradient(f.x,f.y,0,f.x,f.y,f.r);
+    rg.addColorStop(0,"rgba(80,120,180,0.10)");
+    rg.addColorStop(1,"rgba(80,120,180,0)");
+    ctx.fillStyle = rg;
+    ctx.beginPath(); ctx.arc(f.x,f.y,f.r,0,Math.PI*2); ctx.fill();
+  }
+
+  ctx.strokeStyle = "rgba(180,220,255,0.06)";
+  ctx.lineWidth = 1;
+  const gap = 46, ox = (game.time*8)%gap, oy = (game.time*10)%gap;
+  for (let x=-gap; x<W()+gap; x+=gap){ ctx.beginPath(); ctx.moveTo(x+ox,0); ctx.lineTo(x+ox,H()); ctx.stroke(); }
+  for (let y=-gap; y<H()+gap; y+=gap){ ctx.beginPath(); ctx.moveTo(0,y+oy); ctx.lineTo(W(),y+oy); ctx.stroke(); }
+
+  ctx.fillStyle = "rgba(220,240,255,0.45)";
+  for (const s of bg.starsA) ctx.fillRect(s.x,s.y,s.s,s.s);
+  ctx.fillStyle = "rgba(220,240,255,0.80)";
+  for (const s of bg.starsB) ctx.fillRect(s.x,s.y,s.s,s.s);
+}
 
 function circleHit(a,b){
-  const ar = a.hitR ?? a.r, br = b.hitR ?? b.r;
-  const dx = a.x-b.x, dy = a.y-b.y, rr = ar+br;
-  return dx*dx + dy*dy <= rr*rr;
+  const ar=a.hitR??a.r, br=b.hitR??b.r;
+  const dx=a.x-b.x, dy=a.y-b.y, rr=ar+br;
+  return dx*dx+dy*dy<=rr*rr;
 }
 function elementName(t){ return t==="fire"?"火彈":t==="ice"?"冰彈":(t==="thunder"?"雷彈":"未選擇"); }
 
-class Player {
+class Player{
   constructor(){
-    this.x=W()*0.5; this.y=H()*0.5;
-    this.r=12; this.hitR=8.5;
+    this.x=W()*0.5; this.y=H()*0.5; this.r=12; this.hitR=8.5;
     this.drawHalf=14; this.bound=this.drawHalf+2;
     this.maxHp=100; this.hp=100;
     this.baseSpeed=250; this.speedMul=1;
@@ -258,19 +259,20 @@ class Player {
   }
   update(dt){
     if (this.freeze<=0){
-      const spd = this.baseSpeed * this.speedMul;
-      this.x += input.x * spd * dt;
-      this.y += input.y * spd * dt;
-      if (Math.hypot(input.x,input.y)>0.15) this.facing=Math.atan2(input.y,input.x);
+      const spd=this.baseSpeed*this.speedMul;
+      this.x += moveInput.x*spd*dt; this.y += moveInput.y*spd*dt;
     }
+    // 右搖桿控制射擊方向
+    if (Math.hypot(aimInput.x, aimInput.y) > 0.2) this.facing = Math.atan2(aimInput.y, aimInput.x);
+
     this.x=clamp(this.x,this.bound,W()-this.bound);
     this.y=clamp(this.y,this.bound,H()-this.bound);
 
     this.fireCd -= dt;
     const frenzyRate = game.frenzy.time>0 ? game.frenzy.rateMul : 1;
     if (this.fireCd<=0 && !game.paused && !game.over){
-      const base = this.fireInterval * Math.max(0.45,1-game.upgrades.damage*0.03);
-      this.fireCd = base / frenzyRate;
+      const base=this.fireInterval*Math.max(0.45,1-game.upgrades.damage*0.03);
+      this.fireCd=base/frenzyRate;
       spawnPlayerBullets();
     }
 
@@ -280,8 +282,8 @@ class Player {
   }
   hurt(dmg){
     if (this.invuln>0 || game.over) return;
-    const newbieProtect = game.time<=30 ? 0.6 : 1;
-    this.hp = Math.max(0, this.hp - dmg*newbieProtect);
+    const newbieProtect=game.time<=30?0.6:1;
+    this.hp=Math.max(0,this.hp-dmg*newbieProtect);
     this.flash=0.15; this.invuln=0.25;
     resetCombo();
     if (this.hp<=0){
@@ -292,7 +294,7 @@ class Player {
   }
   draw(){
     const s=this.drawHalf*2;
-    if (heroImg.complete && heroImg.naturalWidth) ctx.drawImage(heroImg,this.x-s/2,this.y-s/2,s,s);
+    if (heroImg.complete&&heroImg.naturalWidth) ctx.drawImage(heroImg,this.x-s/2,this.y-s/2,s,s);
     else { ctx.fillStyle="#67d7ff"; ctx.fillRect(this.x-10,this.y-10,20,20); }
 
     const fx=this.x+Math.cos(this.facing)*16, fy=this.y+Math.sin(this.facing)*16;
@@ -304,227 +306,176 @@ class Player {
   }
 }
 
-class Enemy {
+class Enemy{
   constructor(opts){
-    this.id = enemyIdSeq++;
-    this.isBoss = opts.isBoss;
-    this.bossIndex = opts.bossIndex || 0;
-    this.isClone = !!opts.isClone;
-    this.alive = true;
-    this.touchCd = 0;
-    this.freeze = 0;
-    this.slowTimer = 0;
-    this.slowMul = 1;
-    this.pendingSpawn = [];
-    this.lastLightningShot = 0;
-    this.multiCd = 0.5;
-    this.teleportStep = 0;
-    this.splitStage = 0;
+    this.id=enemyIdSeq++; this.isBoss=opts.isBoss; this.bossIndex=opts.bossIndex||0; this.isClone=!!opts.isClone;
+    this.alive=true; this.touchCd=0; this.freeze=0; this.slowTimer=0; this.slowMul=1;
+    this.pendingSpawn=[]; this.lastLightningShot=0; this.multiCd=0.5; this.teleportStep=0; this.splitStage=0;
 
     if (opts.copyData){
-      const c = opts.copyData;
+      const c=opts.copyData;
       this.r=c.r; this.hitR=c.hitR; this.baseDamage=c.baseDamage;
-      this.maxHp=c.maxHp; this.hp=c.hp;
-      this.affixes=new Set(c.affixes);
-      this.spriteKey=c.spriteKey;
+      this.maxHp=c.maxHp; this.hp=c.hp; this.affixes=new Set(c.affixes); this.spriteKey=c.spriteKey;
       this.isClone=true;
-      this.x=clamp(c.x+rand(-26,26),this.r,W()-this.r);
-      this.y=clamp(c.y+rand(-26,26),this.r,H()-this.r);
+      this.x=clamp(c.x+rand(-26,26),this.r,W()-this.r); this.y=clamp(c.y+rand(-26,26),this.r,H()-this.r);
       this.vx=rand(-110,110); this.vy=rand(-110,110);
       this.teleportStep=c.teleportStep; this.splitStage=c.splitStage;
       return;
     }
 
     if (!this.isBoss){
-      const stat = MOB_STATS[opts.mobKey];
-      this.spriteKey = opts.mobKey;
-      this.r = stat.size;
-      this.hitR = stat.size * 0.68;
-      this.baseDamage = stat.dmg;
-      this.maxHp = stat.hp + game.time*0.02;
-      this.hp = this.maxHp;
-      this.affixes = new Set();
+      const stat=MOB_STATS[opts.mobKey];
+      this.spriteKey=opts.mobKey;
+      this.r=stat.size; this.hitR=stat.size*0.68; this.baseDamage=stat.dmg;
+      this.maxHp=stat.hp+game.time*0.02; this.hp=this.maxHp; this.affixes=new Set();
     } else {
-      this.spriteKey = opts.bossSprite;
-      this.r = 22;
-      this.hitR = 14;
-      this.baseDamage = 10;
-      this.maxHp = 55 + game.bossCount*10 + game.time*0.25;
-      this.hp = this.maxHp;
-      this.affixes = new Set();
-      this.assignBossAffixes();
+      this.spriteKey=opts.bossSprite;
+      this.r=22; this.hitR=14; this.baseDamage=10;
+      this.maxHp=55+game.bossCount*10+game.time*0.25; this.hp=this.maxHp;
+      this.affixes=new Set(); this.assignBossAffixes();
     }
-
     this.spawnFromEdge();
   }
-
   spawnFromEdge(){
-    const edge=randi(0,3);
-    const base = this.isBoss ? rand(74,96) : rand(60,95);
+    const edge=randi(0,3), base=this.isBoss?rand(74,96):rand(60,95);
     if(edge===0){this.x=rand(this.r,W()-this.r);this.y=this.r;this.vx=rand(-base,base);this.vy=rand(25,base);}
     if(edge===1){this.x=rand(this.r,W()-this.r);this.y=H()-this.r;this.vx=rand(-base,base);this.vy=-rand(25,base);}
     if(edge===2){this.x=this.r;this.y=rand(this.r,H()-this.r);this.vx=rand(25,base);this.vy=rand(-base,base);}
     if(edge===3){this.x=W()-this.r;this.y=rand(this.r,H()-this.r);this.vx=-rand(25,base);this.vy=rand(-base,base);}
   }
-
-  affixCountByBossIndex(i){
-    if (i < 2) return 0;
-    if (i < 5) return 1;
-    if (i < 10) return 2;
-    if (i < 15) return 3;
-    return 4;
-  }
-
+  affixCountByBossIndex(i){ if(i<2)return 0; if(i<5)return 1; if(i<10)return 2; if(i<15)return 3; return 4; }
   assignBossAffixes(){
-    const count = this.affixCountByBossIndex(this.bossIndex);
-    const pool = [AFFIX.TANK,AFFIX.FAST,AFFIX.CURSE,AFFIX.FIRE,AFFIX.ICE,AFFIX.LIGHTNING,AFFIX.MULTI,AFFIX.TELEPORT,AFFIX.SPLIT];
-    while (this.affixes.size < count){
-      const k = pool[randi(0,pool.length-1)];
-      if (k===AFFIX.FIRE && this.affixes.has(AFFIX.ICE)) continue;
-      if (k===AFFIX.ICE && this.affixes.has(AFFIX.FIRE)) continue;
+    const count=this.affixCountByBossIndex(this.bossIndex);
+    const pool=[AFFIX.TANK,AFFIX.FAST,AFFIX.CURSE,AFFIX.FIRE,AFFIX.ICE,AFFIX.LIGHTNING,AFFIX.MULTI,AFFIX.TELEPORT,AFFIX.SPLIT];
+    while(this.affixes.size<count){
+      const k=pool[randi(0,pool.length-1)];
+      if(k===AFFIX.FIRE&&this.affixes.has(AFFIX.ICE)) continue;
+      if(k===AFFIX.ICE&&this.affixes.has(AFFIX.FIRE)) continue;
       this.affixes.add(k);
     }
-    if (this.affixes.has(AFFIX.TANK)) this.maxHp *= 3;
-    this.hp = this.maxHp;
+    if(this.affixes.has(AFFIX.TANK)) this.maxHp*=3;
+    this.hp=this.maxHp;
   }
-
-  hasAffix(k){ return this.isBoss && this.affixes.has(k); }
-  getDamage(){ return this.baseDamage * (this.hasAffix(AFFIX.TANK) ? 2 : 1); }
-
+  hasAffix(k){ return this.isBoss&&this.affixes.has(k); }
+  getDamage(){ return this.baseDamage*(this.hasAffix(AFFIX.TANK)?2:1); }
   applyIceSlow(level){
-    // Lv1:20%，每級+10%
-    const slowPct = 0.2 + Math.max(0, level - 1) * 0.1;
-    const mul = Math.max(0.2, 1 - slowPct);
-    this.slowMul = Math.min(this.slowMul, mul);
-    this.slowTimer = Math.max(this.slowTimer, 1.0);
+    const slowPct=0.2+Math.max(0,level-1)*0.1;
+    const mul=Math.max(0.2,1-slowPct);
+    this.slowMul=Math.min(this.slowMul,mul);
+    this.slowTimer=Math.max(this.slowTimer,1.0);
   }
-
   onHitByPlayer(dmg){
-    if (!this.alive) return;
+    if(!this.alive) return;
 
-    if (this.hasAffix(AFFIX.LIGHTNING) && game.time - this.lastLightningShot >= 0.125){
-      this.lastLightningShot = game.time;
+    if(this.hasAffix(AFFIX.LIGHTNING)&&game.time-this.lastLightningShot>=0.125){
+      this.lastLightningShot=game.time;
       const ang=rand(0,Math.PI*2), sp=250;
-      game.enemyBullets.push({ x:this.x,y:this.y,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,r:4,hitR:3.5,life:2.2,dmg:4,color:"rgba(120,190,255,.95)" });
+      game.enemyBullets.push({x:this.x,y:this.y,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,r:4,hitR:3.5,life:2.2,dmg:4,color:"rgba(120,190,255,.95)"});
     }
 
-    this.hp -= dmg;
+    this.hp-=dmg;
 
-    if (this.hasAffix(AFFIX.TELEPORT) && this.hp>0){
-      while(this.teleportStep<4 && this.hp <= this.maxHp*(1-(this.teleportStep+1)/5)){
+    if(this.hasAffix(AFFIX.TELEPORT)&&this.hp>0){
+      while(this.teleportStep<4 && this.hp<=this.maxHp*(1-(this.teleportStep+1)/5)){
         this.teleportStep++;
         this.x=rand(this.r,W()-this.r); this.y=rand(this.r,H()-this.r);
       }
     }
 
-    if (this.hasAffix(AFFIX.SPLIT) && this.hp>0){
-      if (this.splitStage===0 && this.hp<=this.maxHp*0.5) this.splitNow(1);
-      if (this.splitStage===1 && this.hp<=this.maxHp*0.25) this.splitNow(2);
+    if(this.hasAffix(AFFIX.SPLIT)&&this.hp>0){
+      if(this.splitStage===0&&this.hp<=this.maxHp*0.5) this.splitNow(1);
+      if(this.splitStage===1&&this.hp<=this.maxHp*0.25) this.splitNow(2);
     }
 
-    if (this.hp<=0) this.die();
+    if(this.hp<=0) this.die();
   }
-
   splitNow(stage){
-    this.splitStage = stage;
-    this.r *= 0.82; this.hitR *= 0.82;
+    this.splitStage=stage;
+    this.r*=0.82; this.hitR*=0.82;
     this.pendingSpawn.push(new Enemy({
-      isBoss:true,
-      bossIndex:this.bossIndex,
-      isClone:true,
+      isBoss:true, bossIndex:this.bossIndex, isClone:true,
       copyData:{
         x:this.x,y:this.y,r:this.r,hitR:this.hitR,maxHp:this.maxHp,hp:this.hp,baseDamage:this.baseDamage,
         affixes:[...this.affixes],spriteKey:this.spriteKey,teleportStep:this.teleportStep,splitStage:this.splitStage
       }
     }));
   }
-
   die(){
-    if (!this.alive) return;
+    if(!this.alive) return;
     this.alive=false;
     addScore(this.isBoss?35:4);
+    if(this.isBoss && !this.isClone) game.powerups.push({x:this.x,y:this.y,r:16,hitR:13,ttl:16,text:"POWERUP"});
 
-    // 修正：只有Boss本體掉POWERUP，分裂體不掉
-    if (this.isBoss && !this.isClone) {
-      game.powerups.push({ x:this.x,y:this.y,r:16,hitR:13,ttl:16,text:"POWERUP" });
-    }
-
-    if (this.hasAffix(AFFIX.FIRE)){
+    if(this.hasAffix(AFFIX.FIRE)){
       const radius=58;
-      game.effects.rings.push({ x:this.x,y:this.y,r:0,maxR:radius,life:.24,color:"255,80,60" });
-      if (Math.hypot(game.player.x-this.x,game.player.y-this.y)<=radius+game.player.hitR) game.player.hurt(this.getDamage());
+      game.effects.rings.push({x:this.x,y:this.y,r:0,maxR:radius,life:.24,color:"255,80,60"});
+      if(Math.hypot(game.player.x-this.x,game.player.y-this.y)<=radius+game.player.hitR) game.player.hurt(this.getDamage());
     }
-    if (this.hasAffix(AFFIX.ICE)){
+    if(this.hasAffix(AFFIX.ICE)){
       const radius=66;
-      game.effects.rings.push({ x:this.x,y:this.y,r:0,maxR:radius,life:.26,color:"130,210,255" });
-      if (Math.hypot(game.player.x-this.x,game.player.y-this.y)<=radius+game.player.hitR){
+      game.effects.rings.push({x:this.x,y:this.y,r:0,maxR:radius,life:.26,color:"130,210,255"});
+      if(Math.hypot(game.player.x-this.x,game.player.y-this.y)<=radius+game.player.hitR){
         game.player.hurt(this.getDamage()*0.8);
         game.player.freeze=Math.max(game.player.freeze,3.0);
       }
     }
   }
-
   update(dt){
-    if (!this.alive) return;
-    if (this.touchCd>0) this.touchCd-=dt;
-    if (this.freeze>0) this.freeze-=dt;
-    if (this.slowTimer>0) this.slowTimer-=dt;
-    if (this.slowTimer<=0) this.slowMul = 1;
+    if(!this.alive) return;
+    if(this.touchCd>0) this.touchCd-=dt;
+    if(this.freeze>0) this.freeze-=dt;
+    if(this.slowTimer>0) this.slowTimer-=dt;
+    if(this.slowTimer<=0) this.slowMul=1;
 
-    if (this.freeze<=0){
-      const dx=game.player.x-this.x, dy=game.player.y-this.y;
-      const d=Math.hypot(dx,dy)||1;
+    if(this.freeze<=0){
+      const dx=game.player.x-this.x, dy=game.player.y-this.y, d=Math.hypot(dx,dy)||1;
       let home=this.isBoss?20:14;
-      if (this.hasAffix(AFFIX.FAST)) home*=1.8;
-      this.vx+=(dx/d)*home*dt;
-      this.vy+=(dy/d)*home*dt;
+      if(this.hasAffix(AFFIX.FAST)) home*=1.8;
+      this.vx+=(dx/d)*home*dt; this.vy+=(dy/d)*home*dt;
 
       let maxSp=this.isBoss?120:145;
-      if (this.hasAffix(AFFIX.FAST)) maxSp*=2;
-      maxSp *= this.slowMul;
-
+      if(this.hasAffix(AFFIX.FAST)) maxSp*=2;
+      maxSp*=this.slowMul;
       const cur=Math.hypot(this.vx,this.vy)||1;
-      if (cur>maxSp){ this.vx=this.vx/cur*maxSp; this.vy=this.vy/cur*maxSp; }
+      if(cur>maxSp){ this.vx=this.vx/cur*maxSp; this.vy=this.vy/cur*maxSp; }
 
-      this.x+=this.vx*dt;
-      this.y+=this.vy*dt;
+      this.x+=this.vx*dt; this.y+=this.vy*dt;
     }
 
-    if (this.x<this.r){this.x=this.r;this.vx=Math.abs(this.vx);}
-    if (this.x>W()-this.r){this.x=W()-this.r;this.vx=-Math.abs(this.vx);}
-    if (this.y<this.r){this.y=this.r;this.vy=Math.abs(this.vy);}
-    if (this.y>H()-this.r){this.y=H()-this.r;this.vy=-Math.abs(this.vy);}
+    if(this.x<this.r){this.x=this.r;this.vx=Math.abs(this.vx);}
+    if(this.x>W()-this.r){this.x=W()-this.r;this.vx=-Math.abs(this.vx);}
+    if(this.y<this.r){this.y=this.r;this.vy=Math.abs(this.vy);}
+    if(this.y>H()-this.r){this.y=H()-this.r;this.vy=-Math.abs(this.vy);}
 
-    if (this.isBoss && this.hasAffix(AFFIX.MULTI)){
+    if(this.isBoss&&this.hasAffix(AFFIX.MULTI)){
       this.multiCd-=dt;
-      if (this.multiCd<=0){
+      if(this.multiCd<=0){
         this.multiCd=0.5;
         const base=Math.atan2(game.player.y-this.y,game.player.x-this.x);
         [-0.18,0,0.18].forEach(off=>{
           const a=base+off, sp=260;
-          game.enemyBullets.push({ x:this.x,y:this.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:4,hitR:3.5,life:2.6,dmg:5,color:"rgba(255,180,120,.95)" });
+          game.enemyBullets.push({x:this.x,y:this.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:4,hitR:3.5,life:2.6,dmg:5,color:"rgba(255,180,120,.95)"});
         });
       }
     }
   }
-
   draw(){
     const s=this.r*2.1, x=this.x-s/2, y=this.y-s/2;
-    const img = mobImages[this.spriteKey];
-    if (img && img.complete && img.naturalWidth) ctx.drawImage(img,x,y,s,s);
+    const img=mobImages[this.spriteKey];
+    if(img&&img.complete&&img.naturalWidth) ctx.drawImage(img,x,y,s,s);
     else { ctx.fillStyle=this.isBoss?"#ff9c9c":"#84ff95"; ctx.fillRect(this.x-this.r,this.y-this.r,this.r*2,this.r*2); }
 
-    if (this.slowTimer>0){
+    if(this.slowTimer>0){
       ctx.fillStyle="rgba(120,200,255,.25)";
       ctx.beginPath(); ctx.arc(this.x,this.y,this.r+2,0,Math.PI*2); ctx.fill();
     }
 
-    if (this.isBoss){
+    if(this.isBoss){
       ctx.fillStyle="#000"; ctx.fillRect(this.x-34,this.y-this.r-12,68,5);
       ctx.fillStyle="#ff6565"; ctx.fillRect(this.x-34,this.y-this.r-12,68*Math.max(0,this.hp/this.maxHp),5);
 
       const labels=[...this.affixes].map(k=>AFFIX_ZH[k]).filter(Boolean);
-      if (labels.length){
+      if(labels.length){
         const text=labels.join("｜");
         ctx.font="bold 11px monospace"; ctx.textAlign="center";
         const tw=ctx.measureText(text).width+10, by=this.y-this.r-30;
@@ -537,34 +488,8 @@ class Enemy {
   }
 }
 
-function currentMobKey() {
-  const idx = Math.min(MOB_ORDER.length - 1, Math.floor(game.time / 30));
-  return MOB_ORDER[idx];
-}
-
-function getAimDir(){
-  let dx=Math.cos(game.player.facing), dy=Math.sin(game.player.facing);
-  if (!game.aimAssist) return {x:dx,y:dy};
-
-  const cone=28*Math.PI/180, cosCone=Math.cos(cone);
-  let best=null, bestScore=1e9;
-  for (const e of game.enemies){
-    if (!e.alive) continue;
-    const tx=e.x-game.player.x, ty=e.y-game.player.y, dist=Math.hypot(tx,ty);
-    if (dist>260 || dist<1) continue;
-    const nx=tx/dist, ny=ty/dist, dot=nx*dx+ny*dy;
-    if (dot<cosCone) continue;
-    const score=dist-dot*40;
-    if (score<bestScore){ bestScore=score; best={x:nx,y:ny,dist}; }
-  }
-  if (best){
-    const blend=best.dist<120?0.42:0.30;
-    dx=dx*(1-blend)+best.x*blend;
-    dy=dy*(1-blend)+best.y*blend;
-    const d=Math.hypot(dx,dy)||1; dx/=d; dy/=d;
-  }
-  return {x:dx,y:dy};
-}
+function currentMobKey(){ return MOB_ORDER[Math.min(MOB_ORDER.length-1,Math.floor(game.time/30))]; }
+function getAimDir(){ return { x:Math.cos(game.player.facing), y:Math.sin(game.player.facing) }; }
 
 function spawnPlayerBullets(){
   const rows=1+game.upgrades.spread, center=(rows-1)/2, gap=13, sp=680;
@@ -585,10 +510,10 @@ function randomBossSprite(){ return MOB_ORDER[randi(0,MOB_ORDER.length-1)]; }
 function spawnBoss(){ game.bossCount++; game.enemies.push(new Enemy({ isBoss:true, bossIndex:game.bossCount, bossSprite:randomBossSprite() })); }
 
 function spawnPattern(t){
-  if (t<30) return {interval:1.35,count:1,maxAlive:10};
-  if (t<60) return {interval:1.0,count:1,maxAlive:16};
-  if (t<100) return {interval:0.78,count:2,maxAlive:24};
-  if (t<150) return {interval:0.6,count:3,maxAlive:32};
+  if(t<30) return {interval:1.35,count:1,maxAlive:10};
+  if(t<60) return {interval:1.0,count:1,maxAlive:16};
+  if(t<100) return {interval:0.78,count:2,maxAlive:24};
+  if(t<150) return {interval:0.6,count:3,maxAlive:32};
   return {interval:0.45,count:3+Math.floor((t-150)/45),maxAlive:44};
 }
 
@@ -608,7 +533,7 @@ function findNearestEnemy(x,y,excludeSet,range){
   for(const e of game.enemies){
     if(!e.alive||excludeSet.has(e.id)) continue;
     const d=Math.hypot(e.x-x,e.y-y);
-    if(d<bestD){best=e;bestD=d;}
+    if(d<bestD){ best=e; bestD=d; }
   }
   return best;
 }
@@ -695,8 +620,8 @@ function updateEnemies(dt){
     }
   }
   if(toAdd.length) game.enemies.push(...toAdd);
-  game.player.speedMul = curse ? 0.7 : 1;
-  game.enemies = game.enemies.filter(e=>e.alive);
+  game.player.speedMul=curse?0.7:1;
+  game.enemies=game.enemies.filter(e=>e.alive);
 }
 
 function updatePowerups(dt){
@@ -754,52 +679,6 @@ function updateEffects(dt){
   game.effects.lines=game.effects.lines.filter(l=>l.life>0);
 }
 
-function updateBackground(dt){
-  for (const s of bg.starsA){ s.y += s.v * dt; if (s.y > H()+2){ s.y = -2; s.x = rand(0,W()); } }
-  for (const s of bg.starsB){ s.y += s.v * dt; if (s.y > H()+3){ s.y = -3; s.x = rand(0,W()); } }
-  for (const f of bg.fog){
-    f.x += f.dx * dt; f.y += f.dy * dt;
-    if (f.x < -f.r) f.x = W() + f.r; if (f.x > W()+f.r) f.x = -f.r;
-    if (f.y < -f.r) f.y = H() + f.r; if (f.y > H()+f.r) f.y = -f.r;
-  }
-}
-
-function drawBackground(){
-  const g = ctx.createLinearGradient(0,0,0,H());
-  g.addColorStop(0,"#0b1120");
-  g.addColorStop(1,"#152743");
-  ctx.fillStyle = g;
-  ctx.fillRect(0,0,W(),H());
-
-  // 霧狀能量
-  for (const f of bg.fog){
-    const rg = ctx.createRadialGradient(f.x,f.y,0,f.x,f.y,f.r);
-    rg.addColorStop(0,"rgba(80,120,180,0.10)");
-    rg.addColorStop(1,"rgba(80,120,180,0)");
-    ctx.fillStyle = rg;
-    ctx.beginPath(); ctx.arc(f.x,f.y,f.r,0,Math.PI*2); ctx.fill();
-  }
-
-  // 細格線
-  ctx.strokeStyle = "rgba(180,220,255,0.06)";
-  ctx.lineWidth = 1;
-  const gap = 46;
-  const ox = (game.time * 8) % gap;
-  const oy = (game.time * 10) % gap;
-  for (let x=-gap; x<W()+gap; x+=gap){
-    ctx.beginPath(); ctx.moveTo(x+ox,0); ctx.lineTo(x+ox,H()); ctx.stroke();
-  }
-  for (let y=-gap; y<H()+gap; y+=gap){
-    ctx.beginPath(); ctx.moveTo(0,y+oy); ctx.lineTo(W(),y+oy); ctx.stroke();
-  }
-
-  // 星塵
-  ctx.fillStyle = "rgba(220,240,255,0.45)";
-  for (const s of bg.starsA) ctx.fillRect(s.x,s.y,s.s,s.s);
-  ctx.fillStyle = "rgba(220,240,255,0.80)";
-  for (const s of bg.starsB) ctx.fillRect(s.x,s.y,s.s,s.s);
-}
-
 function drawBullets(){
   for(const b of game.playerBullets){
     const s=12;
@@ -845,7 +724,6 @@ function updateHUD(){
   hudBnc.textContent=`彈射：Lv${game.upgrades.bounce}`;
   hudDmg.textContent=`重擊：Lv${game.upgrades.damage}`;
   hudBuff.textContent=game.frenzy.time>0?`火力回饋：${game.frenzy.time.toFixed(1)}s`:"火力回饋：無";
-  assistBtn.textContent=`輔瞄：${game.aimAssist?"開":"關"}`;
 }
 
 function update(dt){
@@ -857,122 +735,3 @@ function update(dt){
   if(game.comboTimer>0){
     game.comboTimer-=dt;
     if(game.comboTimer<=0){ game.combo=0; game.frenzy.milestone=0; }
-  }
-
-  const pat=spawnPattern(game.time);
-  game.spawnTimer-=dt; game.bossTimer-=dt;
-  if(game.spawnTimer<=0){
-    game.spawnTimer=pat.interval;
-    if(game.enemies.filter(e=>e.alive).length<pat.maxAlive){
-      for(let i=0;i<pat.count;i++) spawnEnemy();
-    }
-  }
-  if(game.bossTimer<=0){ game.bossTimer=game.bossInterval; spawnBoss(); }
-
-  game.player.update(dt);
-  updatePlayerBullets(dt);
-  updateEnemyBullets(dt);
-  updateEnemies(dt);
-  updatePowerups(dt);
-  updateEffects(dt);
-}
-
-function draw(){
-  drawBackground();
-  drawBullets();
-  for(const e of game.enemies) e.draw();
-  drawPowerups();
-  drawEffects();
-  game.player.draw();
-  updateHUD();
-}
-
-function refreshJoystick(){
-  const r=joystick.getBoundingClientRect();
-  joyCenter.x=r.left+r.width/2; joyCenter.y=r.top+r.height/2; joyR=r.width*0.36;
-}
-function moveJoy(t){
-  const dx=t.clientX-joyCenter.x, dy=t.clientY-joyCenter.y;
-  const len=Math.hypot(dx,dy)||1, c=Math.min(len,joyR), nx=dx/len, ny=dy/len;
-  input.x=nx*(c/joyR); input.y=ny*(c/joyR);
-  stick.style.transform=`translate(${nx*c}px,${ny*c}px)`;
-}
-function endJoy(e){
-  if(joyId===null) return;
-  for(const t of e.changedTouches){
-    if(t.identifier===joyId){
-      joyId=null; input.x=0; input.y=0; stick.style.transform="translate(0,0)";
-      break;
-    }
-  }
-}
-
-function resetGame(){
-  game.player=new Player();
-  game.enemies=[]; game.playerBullets=[]; game.enemyBullets=[]; game.powerups=[];
-  game.effects={rings:[],lines:[]};
-  game.score=0; game.time=0; game.combo=0; game.comboTimer=0;
-  game.spawnTimer=0; game.bossTimer=20; game.bossCount=0;
-  game.over=false; game.paused=false; game.pendingPowerup=0; game.firstPowerupGiven=false;
-  game.element=null; game.upgrades={elementLv:0,spread:0,bounce:0,damage:0};
-  game.frenzy={time:0,rateMul:1.4,dmgMul:1.25,milestone:0};
-  game.aimAssist=true;
-  input.x=0; input.y=0; stick.style.transform="translate(0,0)";
-  elementModal.style.display="none"; upgradeModal.style.display="none"; gameOverModal.style.display="none";
-}
-
-window.addEventListener("resize",()=>{ canvas.width=innerWidth; canvas.height=innerHeight; initBackground(); refreshJoystick(); });
-canvas.width=innerWidth; canvas.height=innerHeight; initBackground(); refreshJoystick();
-
-document.addEventListener("touchstart",e=>e.preventDefault(),{passive:false});
-document.addEventListener("touchmove",e=>e.preventDefault(),{passive:false});
-
-joystick.addEventListener("touchstart",e=>{
-  if(joyId!==null||game.over) return;
-  const t=e.changedTouches[0]; joyId=t.identifier; moveJoy(t);
-},{passive:false});
-document.addEventListener("touchmove",e=>{
-  if(joyId===null) return;
-  for(const t of e.changedTouches){ if(t.identifier===joyId){ moveJoy(t); break; } }
-},{passive:false});
-document.addEventListener("touchend",endJoy,{passive:false});
-document.addEventListener("touchcancel",endJoy,{passive:false});
-
-pickFire.addEventListener("touchstart",()=>chooseElement("fire"),{passive:false});
-pickIce.addEventListener("touchstart",()=>chooseElement("ice"),{passive:false});
-pickThunder.addEventListener("touchstart",()=>chooseElement("thunder"),{passive:false});
-pickFire.addEventListener("click",()=>chooseElement("fire"));
-pickIce.addEventListener("click",()=>chooseElement("ice"));
-pickThunder.addEventListener("click",()=>chooseElement("thunder"));
-
-upElement.addEventListener("touchstart",()=>chooseUpgrade("element"),{passive:false});
-upSpread.addEventListener("touchstart",()=>chooseUpgrade("spread"),{passive:false});
-upBounce.addEventListener("touchstart",()=>chooseUpgrade("bounce"),{passive:false});
-upDamage.addEventListener("touchstart",()=>chooseUpgrade("damage"),{passive:false});
-upHeal.addEventListener("touchstart",()=>chooseUpgrade("heal"),{passive:false});
-upElement.addEventListener("click",()=>chooseUpgrade("element"));
-upSpread.addEventListener("click",()=>chooseUpgrade("spread"));
-upBounce.addEventListener("click",()=>chooseUpgrade("bounce"));
-upDamage.addEventListener("click",()=>chooseUpgrade("damage"));
-upHeal.addEventListener("click",()=>chooseUpgrade("heal"));
-
-assistBtn.addEventListener("touchstart",()=>{ game.aimAssist=!game.aimAssist; },{passive:false});
-assistBtn.addEventListener("click",()=>{ game.aimAssist=!game.aimAssist; });
-restartBtn.addEventListener("touchstart",resetGame,{passive:false});
-restartBtn.addEventListener("click",resetGame);
-
-function loop(ts){
-  const dt=Math.min(0.033,((ts-lastTs)/1000)||0.016);
-  lastTs=ts;
-  update(dt);
-  draw();
-  requestAnimationFrame(loop);
-}
-
-resetGame();
-requestAnimationFrame(loop);
-</script>
-</body>
-</html>
-```
-
