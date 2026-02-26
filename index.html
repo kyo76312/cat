@@ -114,7 +114,7 @@
 <canvas id="game"></canvas>
 
 <div id="hud">
-  <div id="hudVersion">版本號：02260927</div>
+  <div id="hudVersion">版本號：02260946</div>
   <div id="hudHp">生命：200</div>
   <div id="hudTime">時間：0.0s</div>
   <div id="hudCombo">連殺：0</div>
@@ -153,7 +153,7 @@
 
 <div id="gameOverModal" class="overlay">
   <div class="panel">
-    <h2 style="color:#ff8f8f">GAME OVER</h2>
+    <h2 id="gameOverTitle" style="color:#ff8f8f">GAME OVER</h2>
     <p class="desc" id="result"></p>
     <button id="restartBtn" class="btn main">重新開始</button>
   </div>
@@ -269,6 +269,7 @@ const upQueue = document.getElementById("upQueue");
 upHeal.style.display = "none";
 
 const gameOverModal = document.getElementById("gameOverModal");
+const gameOverTitle = document.getElementById("gameOverTitle");
 const result = document.getElementById("result");
 const restartBtn = document.getElementById("restartBtn");
 const finalBossModal = document.getElementById("finalBossModal");
@@ -1015,10 +1016,13 @@ function endGame(type) {
   finalBossModal.style.display = "none";
 
   if (type === "finalWin") {
+    gameOverTitle.textContent = "Victory";
     result.textContent = `粉紅雲：等、等等……這怎麼可能……\n\n遊戲結束，恭喜破關`;
   } else if (type === "finalLose") {
+    gameOverTitle.textContent = "GAME OVER";
     result.textContent = `粉紅雲：\n你已經很努力了，\n不過嘛——努力不代表會贏~\n\n遊戲結束`;
   } else {
+    gameOverTitle.textContent = "GAME OVER";
     result.textContent = buildGameOverSummary();
   }
   gameOverModal.style.display = "flex";
@@ -1612,6 +1616,7 @@ function resetGame() {
   stickAim.style.transform = "translate(0,0)";
   elementModal.style.display = "none";
   upgradeModal.style.display = "none";
+  gameOverTitle.textContent = "GAME OVER";
   gameOverModal.style.display = "none";
   finalBossModal.style.display = "none";
 }
