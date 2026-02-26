@@ -1,4 +1,4 @@
-```0530
+```0517---0544
 <!doctype html>
 <html lang="zh-Hant">
 <head>
@@ -712,35 +712,31 @@ function getAimDir() {
 }
 
 function spawnPlayerBullets() {
-  const rows = 1 + game.upgrades.spread;           // 子彈數量持續增加
-  const dir = getAimDir();
-  const baseAngle = Math.atan2(dir.y, dir.x);
+  const rows = 1 + game.upgrades.spread;
+  const center = (rows - 1) / 2;
+  const gap = 13;
   const sp = 680;
+
+  const dir = getAimDir();
+  const px = -dir.y;
+  const py = dir.x;
   const frenzy = game.frenzy.time > 0 ? game.frenzy.dmgMul : 1;
 
-  // Lv10 -> 120度，之後固定120度只增加密度
-  const coneDeg = Math.min(120, game.upgrades.spread * 12);
-  const coneRad = coneDeg * Math.PI / 180;
-
   for (let i = 0; i < rows; i++) {
-    const t = rows === 1 ? 0.5 : i / (rows - 1);   // 0~1
-    const offset = (t - 0.5) * coneRad;            // -cone/2 ~ +cone/2
-    const a = baseAngle + offset;
-
+    const off = (i - center) * gap;
     game.playerBullets.push({
-      x: game.player.x,
-      y: game.player.y,
-      vx: Math.cos(a) * sp,
-      vy: Math.sin(a) * sp,
+      x: game.player.x + px * off,
+      y: game.player.y + py * off,
+      vx: dir.x * sp,
+      vy: dir.y * sp,
       r: 5,
       hitR: 4.2,
       alive: true,
       bounceLeft: game.upgrades.bounce,
-      dmg: (1 + game.upgrades.damage * 0.35) * frenzy * game.player.attackMul
+      dmg: (1 + game.upgrades.damage * 0.35) * frenzy
     });
   }
 }
-
 
 function spawnEnemy() {
   game.enemies.push(new Enemy({ isBoss: false, mobKey: currentMobKey() }));
@@ -1299,7 +1295,4 @@ requestAnimationFrame(loop);
 </body>
 </html>
 ```
-
-
-
 
