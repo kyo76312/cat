@@ -114,7 +114,7 @@
 <canvas id="game"></canvas>
 
 <div id="hud">
-  <div id="hudVersion">版本號：02260903</div>
+  <div id="hudVersion">版本號：02260913</div>
   <div id="hudHp">生命：100</div>
   <div id="hudTime">時間：0.0s</div>
   <div id="hudCombo">連殺：0</div>
@@ -368,6 +368,12 @@ function bossHpScaleByTime(t) {
   return 0.62 + (t / 60) * 0.38;
 }
 
+function bossSpawnIntervalByTime(t) {
+  if (t < 60) return 30;
+  if (t < 120) return 20;
+  return 12;
+}
+
 class Player {
   constructor() {
     this.x = W() * 0.5;
@@ -546,11 +552,9 @@ class Enemy {
   }
 
   affixCountByBossIndex(i) {
-    if (i < 2) return 0;
-    if (i < 5) return 1;
-    if (i < 10) return 2;
-    if (i < 15) return 3;
-    return 4;
+    if (game.time < 60) return 1;
+    if (game.time < 120) return 2;
+    return 3;
   }
 
   assignBossAffixes() {
@@ -998,7 +1002,7 @@ function endGame(type) {
   if (type === "finalWin") {
     result.textContent = `粉紅雲：等、等等……這怎麼可能……\n\n遊戲結束，恭喜破關`;
   } else if (type === "finalLose") {
-    result.textContent = `粉紅雲：\n你已經很努力了，\n不過嘛...努力不代表會贏~\n\n遊戲結束`;
+    result.textContent = `粉紅雲：\n你已經很努力了，\n不過嘛——努力不代表會贏~\n\n遊戲結束`;
   } else {
     result.textContent = buildGameOverSummary();
   }
@@ -1495,7 +1499,7 @@ function update(dt) {
   }
 
   if (game.bossTimer <= 0 && !game.finalBossSpawned && game.time < 240) {
-    game.bossTimer = game.time < 120 ? 36 : game.bossInterval;
+    game.bossTimer = bossSpawnIntervalByTime(game.time);
     spawnBoss();
   }
 
@@ -1557,7 +1561,7 @@ function resetGame() {
   game.combo = 0;
   game.comboTimer = 0;
   game.spawnTimer = 0;
-  game.bossTimer = 36;
+  game.bossTimer = bossSpawnIntervalByTime(0);
   game.bossCount = 0;
   game.over = false;
   game.paused = false;
@@ -1681,5 +1685,4 @@ requestAnimationFrame(loop);
 </script>
 </body>
 </html>
-
 
