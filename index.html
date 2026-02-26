@@ -1,10 +1,10 @@
-```02260753
+```02260801
 <!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>貓貓生存</title>
+  <title>貓咪生存</title>
   <style>
     :root { --panel: rgba(0,0,0,.45); --joy: 128px; }
     * { box-sizing: border-box; }
@@ -114,13 +114,8 @@
 
 <div id="hud">
   <div id="hudHp">生命：100</div>
-  <div id="hudScore">分數：0</div>
   <div id="hudTime">時間：0.0s</div>
   <div id="hudCombo">連殺：0</div>
-  <div id="hudMulti">倍率：x1.00</div>
-  <div id="hudMobType">小兵：World01_001_GreenGoo</div>
-  <div id="hudElem">屬性彈：未選擇</div>
-  <div id="hudElemLv">屬性等級：Lv0</div>
   <div id="hudSpr">散射：Lv0</div>
   <div id="hudBnc">彈射：Lv0</div>
   <div id="hudDmg">重擊：Lv0</div>
@@ -133,17 +128,17 @@
 
 <div id="elementModal" class="overlay">
   <div class="panel">
-    <h2>選擇屬性彈</h2>
-    <p class="desc">首次吃到 POWERUP 時選擇</p>
-    <button class="btn" id="pickFire">火彈：命中爆炸</button>
-    <button class="btn" id="pickIce">冰彈：命中緩速（Lv1:20%，每級+10%）</button>
-    <button class="btn" id="pickThunder">雷彈：命中連鎖閃電</button>
+    <h2>閬告搰灞€у綀</h2>
+    <p class="desc">棣栨鍚冨埌 POWERUP 鏅傞伕鎿?/p>
+    <button class="btn" id="pickFire">鐏綀锛氬懡涓垎鐐?/button>
+    <button class="btn" id="pickIce">鍐板綀锛氬懡涓珐閫燂紙Lv1:20%锛屾瘡绱?10%锛?/button>
+    <button class="btn" id="pickThunder">闆峰綀锛氬懡涓€ｉ帠闁冮浕</button>
   </div>
 </div>
 
 <div id="upgradeModal" class="overlay">
   <div class="panel">
-    <h2>選擇升級</h2>
+    <h2>閬告搰鍗囩礆</h2>
     <p class="desc" id="upDesc"></p>
     <button class="btn" id="upElement"></button>
     <button class="btn" id="upSpread"></button>
@@ -158,7 +153,7 @@
   <div class="panel">
     <h2 style="color:#ff8f8f">GAME OVER</h2>
     <p class="desc" id="result"></p>
-    <button id="restartBtn" class="btn main">重新開始</button>
+    <button id="restartBtn" class="btn main">閲嶆柊闁嬪</button>
   </div>
 </div>
 
@@ -177,18 +172,18 @@ const AFFIX = {
 };
 
 const AFFIX_ZH = {
-  tank: "特別強壯",
-  fast: "特別快速",
-  curse: "衰老詛咒",
-  fire: "火焰強化",
-  ice: "冰凍強化",
-  lightning: "閃電強化",
-  multi: "多重射擊",
-  teleport: "傳送",
-  split: "分裂"
+  tank: "鐗瑰垾寮峰／",
+  fast: "鐗瑰垾蹇€?,
+  curse: "琛拌€佽鍜?,
+  fire: "鐏劙寮峰寲",
+  ice: "鍐板噸寮峰寲",
+  lightning: "闁冮浕寮峰寲",
+  multi: "澶氶噸灏勬搳",
+  teleport: "鍌抽€?,
+  split: "鍒嗚"
 };
 
-AFFIX_ZH[AFFIX.DASH] = "衝刺";
+AFFIX_ZH[AFFIX.DASH] = "琛濆埡";
 
 const MOB_ORDER = [
   "World01_001_GreenGoo",
@@ -233,13 +228,8 @@ for (const k of MOB_ORDER) {
 }
 
 const hudHp = document.getElementById("hudHp");
-const hudScore = document.getElementById("hudScore");
 const hudTime = document.getElementById("hudTime");
 const hudCombo = document.getElementById("hudCombo");
-const hudMulti = document.getElementById("hudMulti");
-const hudMobType = document.getElementById("hudMobType");
-const hudElem = document.getElementById("hudElem");
-const hudElemLv = document.getElementById("hudElemLv");
 const hudSpr = document.getElementById("hudSpr");
 const hudBnc = document.getElementById("hudBnc");
 const hudDmg = document.getElementById("hudDmg");
@@ -304,8 +294,8 @@ const game = {
   comboTimer: 0,
 
   spawnTimer: 0,
-  bossTimer: 20,
-  bossInterval: 12,
+  bossTimer: 36,
+  bossInterval: 24,
   bossCount: 0,
 
   over: false,
@@ -313,6 +303,7 @@ const game = {
   pendingPowerup: 0,
   firstPowerupGiven: false,
   curseActive: false,
+  firstMedkitGiven: false,
   medkitTimer: 45,
 
   element: null,
@@ -340,10 +331,10 @@ function circleHit(a, b) {
 }
 
 function elementName(t) {
-  if (t === "fire") return "火彈";
-  if (t === "ice") return "冰彈";
-  if (t === "thunder") return "雷彈";
-  return "未選擇";
+  if (t === "fire") return "鐏綀";
+  if (t === "ice") return "鍐板綀";
+  if (t === "thunder") return "闆峰綀";
+  return "鏈伕鎿?;
 }
 
 function currentMobKey() {
@@ -387,7 +378,8 @@ class Player {
       this.y += inputMove.y * spd * dt;
 
       if (Math.hypot(inputAim.x, inputAim.y) > 0.2) {
-        this.facing = Math.atan2(inputAim.y, inputAim.x);
+        const ad = getAimDir();
+        this.facing = Math.atan2(ad.y, ad.x);
       }
     }
 
@@ -417,7 +409,8 @@ class Player {
 
     if (this.hp <= 0) {
       game.over = true;
-      result.textContent = `生存 ${game.time.toFixed(1)} 秒，分數 ${game.score}`;
+      result.style.whiteSpace = "pre-line";
+      result.textContent = buildGameOverSummary();
       gameOverModal.style.display = "flex";
     }
   }
@@ -539,7 +532,7 @@ class Enemy {
     AFFIX.LIGHTNING, AFFIX.DASH, AFFIX.MULTI, AFFIX.TELEPORT, AFFIX.SPLIT
   ];
 
-  // 2分鐘前不允許出現多重射擊
+  // 2鍒嗛悩鍓嶄笉鍏佽ū鍑虹従澶氶噸灏勬搳
   if (game.time < 120) {
     pool = pool.filter(k => k !== AFFIX.MULTI);
   }
@@ -564,7 +557,7 @@ getDamage() { return this.baseDamage * (this.hasAffix(AFFIX.TANK) ? 2 : 1); }
 
 applyIceSlow(level) {
   const slowPct = 0.2 + Math.max(0, level - 1) * 0.1;
-  const mul = Math.max(0.2, 1 - slowPct);
+  const mul = Math.max(0, 1 - slowPct);
   this.slowMul = Math.min(this.slowMul, mul);
   this.slowTimer = Math.max(this.slowTimer, 1.0);
 }
@@ -617,7 +610,7 @@ applyIceSlow(level) {
     this.alive = false;
     addScore(this.isBoss ? 35 : 4);
 
-    // 只有Boss本體掉落
+    // 鍙湁Boss鏈珨鎺夎惤
     if (this.isBoss && !this.isClone) {
       game.powerups.push({ x: this.x, y: this.y, r: 16, hitR: 13, ttl: 16, text: "POWERUP" });
     }
@@ -796,7 +789,7 @@ applyIceSlow(level) {
 
       const labels = [...this.affixes].map(k => AFFIX_ZH[k]).filter(Boolean);
       if (labels.length) {
-        const text = labels.join("｜");
+        const text = labels.join("锝?);
         ctx.font = "bold 11px monospace";
         ctx.textAlign = "center";
         const tw = ctx.measureText(text).width + 10;
@@ -812,8 +805,43 @@ applyIceSlow(level) {
 
 function getAimDir() {
   const len = Math.hypot(inputAim.x, inputAim.y);
-  if (len > 0.2) return { x: inputAim.x / len, y: inputAim.y / len };
-  return { x: Math.cos(game.player.facing), y: Math.sin(game.player.facing) };
+  const base = len > 0.2
+    ? { x: inputAim.x / len, y: inputAim.y / len }
+    : { x: Math.cos(game.player.facing), y: Math.sin(game.player.facing) };
+
+  if (len <= 0.2) return base;
+
+  const assistRange = 340;
+  const assistConeCos = Math.cos(Math.PI / 3.3); // about 54deg
+  let target = null;
+  let bestScore = -1e9;
+
+  for (const e of game.enemies) {
+    if (!e.alive) continue;
+    const dx = e.x - game.player.x;
+    const dy = e.y - game.player.y;
+    const d = Math.hypot(dx, dy) || 1;
+    if (d > assistRange) continue;
+
+    const nx = dx / d;
+    const ny = dy / d;
+    const dot = nx * base.x + ny * base.y;
+    if (dot < assistConeCos) continue;
+
+    const score = dot * 1.35 + (1 - d / assistRange) * 0.9;
+    if (score > bestScore) {
+      bestScore = score;
+      target = { x: nx, y: ny };
+    }
+  }
+
+  if (!target) return base;
+
+  const assistStrength = 0.48;
+  const mx = base.x * (1 - assistStrength) + target.x * assistStrength;
+  const my = base.y * (1 - assistStrength) + target.y * assistStrength;
+  const ml = Math.hypot(mx, my) || 1;
+  return { x: mx / ml, y: my / ml };
 }
 
 function spawnPlayerBullets() {
@@ -887,6 +915,19 @@ function resetCombo() {
   game.frenzy.milestone = 0;
 }
 
+function buildGameOverSummary() {
+  const lines = [
+    `存活時間：${game.time.toFixed(1)} 秒`,
+    `分數：${game.score}`,
+    `屬性彈：${elementName(game.element)}`,
+    `屬性等級：Lv${game.upgrades.elementLv}`,
+    `散射：Lv${game.upgrades.spread}`,
+    `彈射：Lv${game.upgrades.bounce}`,
+    `重擊：Lv${game.upgrades.damage}`
+  ];
+  return lines.join("\n");
+}
+
 function findNearestEnemy(x, y, excludeSet, range) {
   let best = null;
   let bestD = range;
@@ -898,13 +939,46 @@ function findNearestEnemy(x, y, excludeSet, range) {
   return best;
 }
 
+function makeLightningPoints(x1, y1, x2, y2, segments = 7, amp = 11) {
+  const pts = [{ x: x1, y: y1 }];
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = -dy / len;
+  const ny = dx / len;
+  for (let i = 1; i < segments; i++) {
+    const t = i / segments;
+    const baseX = x1 + dx * t;
+    const baseY = y1 + dy * t;
+    const edgeFade = 1 - Math.abs(t - 0.5) * 1.55;
+    const off = rand(-amp, amp) * Math.max(0.2, edgeFade);
+    pts.push({ x: baseX + nx * off, y: baseY + ny * off });
+  }
+  pts.push({ x: x2, y: y2 });
+  return pts;
+}
+
 function applyElementEffect(hit) {
   const lv = Math.max(1, game.upgrades.elementLv);
 
   if (game.element === "fire") {
     const r = 24 + lv * 8;
     const dmg = 0.7 + lv * 0.35;
-    game.effects.rings.push({ x: hit.x, y: hit.y, r: 0, maxR: r, life: 0.22, color: "255,90,70" });
+    hit.onHitByPlayer(dmg);
+    game.effects.rings.push({ x: hit.x, y: hit.y, r: 0, maxR: r, life: 0.24, color: "255,90,70" });
+    game.effects.rings.push({ x: hit.x, y: hit.y, r: 0, maxR: r * 0.72, life: 0.20, color: "255,210,110" });
+    for (let i = 0; i < 7; i++) {
+      const a = rand(0, Math.PI * 2);
+      const d = rand(16, r * 0.95);
+      game.effects.lines.push({
+        x1: hit.x,
+        y1: hit.y,
+        x2: hit.x + Math.cos(a) * d,
+        y2: hit.y + Math.sin(a) * d,
+        life: 0.14,
+        color: "255,150,90"
+      });
+    }
     for (const e of game.enemies) {
       if (!e.alive || e.id === hit.id) continue;
       if (Math.hypot(e.x - hit.x, e.y - hit.y) <= r + e.hitR) e.onHitByPlayer(dmg);
@@ -913,7 +987,21 @@ function applyElementEffect(hit) {
 
   if (game.element === "ice") {
     hit.applyIceSlow(lv);
-    game.effects.rings.push({ x: hit.x, y: hit.y, r: 0, maxR: 20 + lv * 4, life: 0.16, color: "120,200,255" });
+    const ir = 20 + lv * 4;
+    game.effects.rings.push({ x: hit.x, y: hit.y, r: 0, maxR: ir, life: 0.2, color: "120,200,255" });
+    game.effects.rings.push({ x: hit.x, y: hit.y, r: 0, maxR: ir * 0.65, life: 0.16, color: "210,245,255" });
+    for (let i = 0; i < 6; i++) {
+      const a = i * (Math.PI * 2 / 6) + rand(-0.12, 0.12);
+      const d = ir * rand(0.55, 0.95);
+      game.effects.lines.push({
+        x1: hit.x,
+        y1: hit.y,
+        x2: hit.x + Math.cos(a) * d,
+        y2: hit.y + Math.sin(a) * d,
+        life: 0.16,
+        color: "170,230,255"
+      });
+    }
   }
 
   if (game.element === "thunder") {
@@ -927,7 +1015,15 @@ function applyElementEffect(hit) {
       const n = findNearestEnemy(from.x, from.y, used, range);
       if (!n) break;
       used.add(n.id);
-      game.effects.lines.push({ x1: from.x, y1: from.y, x2: n.x, y2: n.y, life: 0.1, color: "190,230,255" });
+      game.effects.lines.push({
+        x1: from.x,
+        y1: from.y,
+        x2: n.x,
+        y2: n.y,
+        life: 0.12,
+        color: "190,230,255",
+        points: makeLightningPoints(from.x, from.y, n.x, n.y, 7, 11 + lv * 1.2)
+      });
       n.onHitByPlayer(dmg);
       from = n;
       jumps--;
@@ -1062,12 +1158,17 @@ function spawnMedkit() {
     y: rand(42, H() - 42),
     r: 16,
     hitR: 13,
-    ttl: 28,
+    ttl: 45,
     text: "HP"
   });
 }
 
 function updateMedkits(dt) {
+  if (!game.firstMedkitGiven && game.time >= 20) {
+    game.firstMedkitGiven = true;
+    spawnMedkit();
+  }
+
   game.medkitTimer -= dt;
   if (game.medkitTimer <= 0) {
     game.medkitTimer = rand(30, 60);
@@ -1138,13 +1239,13 @@ function chooseElement(type) {
 function refreshUpgradeButtons() {
   const lv = game.upgrades.elementLv;
   const n = elementName(game.element);
-  upDesc.textContent = `目前屬性：${n}`;
-  upElement.textContent = `${n} 強化 Lv${lv} -> Lv${lv + 1}`;
-  upSpread.textContent = `散射 Lv${game.upgrades.spread}：多一排子彈`;
-  upBounce.textContent = `彈射 Lv${game.upgrades.bounce}：命中後再彈一次`;
-  upDamage.textContent = `重擊 Lv${game.upgrades.damage}：子彈傷害提升`;
+  upDesc.textContent = `鐩墠灞€э細${n}`;
+  upElement.textContent = `${n} 寮峰寲 Lv${lv} -> Lv${lv + 1}`;
+  upSpread.textContent = `鏁ｅ皠 Lv${game.upgrades.spread}锛氬涓€鎺掑瓙褰坄;
+  upBounce.textContent = `褰堝皠 Lv${game.upgrades.bounce}锛氬懡涓緦鍐嶅綀涓€娆;
+  upDamage.textContent = `閲嶆搳 Lv${game.upgrades.damage}锛氬瓙褰堝偡瀹虫彁鍗嘸;
   upHeal.style.display = "none";
-  upQueue.textContent = `待選升級：${game.pendingPowerup}`;
+  upQueue.textContent = `寰呴伕鍗囩礆锛?{game.pendingPowerup}`;
 }
 
 function chooseUpgrade(type) {
@@ -1220,14 +1321,19 @@ function drawPowerups() {
 
 function drawMedkits() {
   for (const m of game.medkits) {
+    const pulse = 0.5 + (Math.sin(game.time * 5 + m.x) + 1) * 0.2;
     ctx.textAlign = "center";
-    ctx.font = "bold 16px monospace";
-    ctx.fillStyle = "#7bff9d";
-    ctx.fillText(m.text, m.x, m.y);
-    ctx.strokeStyle = "rgba(130,255,165,0.6)";
-    ctx.lineWidth = 2;
+    ctx.font = "bold 18px monospace";
+    ctx.fillStyle = `rgba(20,55,28,${pulse})`;
     ctx.beginPath();
-    ctx.arc(m.x, m.y - 5, 14, 0, Math.PI * 2);
+    ctx.arc(m.x, m.y - 6, 18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#7bff9d";
+    ctx.fillText(m.text, m.x, m.y + 1);
+    ctx.strokeStyle = `rgba(130,255,165,${pulse + 0.15})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(m.x, m.y - 6, 18, 0, Math.PI * 2);
     ctx.stroke();
   }
 }
@@ -1244,7 +1350,17 @@ function drawEffects() {
     const a = Math.max(0, l.life / 0.1);
     ctx.strokeStyle = `rgba(${l.color},${a})`;
     ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
+    if (l.points && l.points.length > 1) {
+      ctx.beginPath();
+      ctx.moveTo(l.points[0].x, l.points[0].y);
+      for (let i = 1; i < l.points.length; i++) ctx.lineTo(l.points[i].x, l.points[i].y);
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(l.x1, l.y1);
+      ctx.lineTo(l.x2, l.y2);
+      ctx.stroke();
+    }
   }
 }
 
@@ -1255,7 +1371,7 @@ function drawCurseHint() {
   const y = game.player.y - 26;
   ctx.font = "bold 14px monospace";
   ctx.textAlign = "center";
-  const txt = "衰老";
+  const txt = "琛拌€?;
   const tw = ctx.measureText(txt).width + 12;
   ctx.fillStyle = `rgba(25,10,10,${a * 0.9})`;
   ctx.fillRect(x - tw / 2, y - 14, tw, 18);
@@ -1264,16 +1380,9 @@ function drawCurseHint() {
 }
 
 function updateHUD() {
-  const cm = 1 + Math.min(3, game.combo * 0.08);
-  const dm = 1 + (1 - game.player.hp / game.player.maxHp) * 0.55;
   hudHp.textContent = `生命：${Math.ceil(game.player.hp)}`;
-  hudScore.textContent = `分數：${game.score}`;
   hudTime.textContent = `時間：${game.time.toFixed(1)}s`;
   hudCombo.textContent = `連殺：${game.combo}`;
-  hudMulti.textContent = `倍率：x${(cm * dm).toFixed(2)}`;
-  hudMobType.textContent = `小兵：${currentMobKey()}`;
-  hudElem.textContent = `屬性彈：${elementName(game.element)}`;
-  hudElemLv.textContent = `屬性等級：Lv${game.upgrades.elementLv}`;
   hudSpr.textContent = `散射：Lv${game.upgrades.spread}`;
   hudBnc.textContent = `彈射：Lv${game.upgrades.bounce}`;
   hudDmg.textContent = `重擊：Lv${game.upgrades.damage}`;
@@ -1305,7 +1414,7 @@ function update(dt) {
   }
 
   if (game.bossTimer <= 0) {
-    game.bossTimer = game.bossInterval;
+    game.bossTimer = game.time < 120 ? 36 : game.bossInterval;
     spawnBoss();
   }
 
@@ -1367,12 +1476,13 @@ function resetGame() {
   game.combo = 0;
   game.comboTimer = 0;
   game.spawnTimer = 0;
-  game.bossTimer = 20;
+  game.bossTimer = 36;
   game.bossCount = 0;
   game.over = false;
   game.paused = false;
   game.pendingPowerup = 0;
   game.firstPowerupGiven = false;
+  game.firstMedkitGiven = false;
   game.curseActive = false;
   game.medkitTimer = rand(30, 60);
   game.element = null;
@@ -1474,3 +1584,4 @@ requestAnimationFrame(loop);
 </body>
 </html>
 ```
+
