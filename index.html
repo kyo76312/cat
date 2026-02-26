@@ -114,8 +114,8 @@
 <canvas id="game"></canvas>
 
 <div id="hud">
-  <div id="hudVersion">版本號：02260913</div>
-  <div id="hudHp">生命：100</div>
+  <div id="hudVersion">版本號：02260927</div>
+  <div id="hudHp">生命：200</div>
   <div id="hudTime">時間：0.0s</div>
   <div id="hudCombo">連殺：0</div>
   <div id="hudSpr">散射：Lv0</div>
@@ -383,8 +383,8 @@ class Player {
     this.drawHalf = 14;
     this.bound = this.drawHalf + 2;
 
-    this.maxHp = 100;
-    this.hp = 100;
+    this.maxHp = 200;
+    this.hp = 200;
     this.baseSpeed = 250;
     this.speedMul = 1;
 
@@ -652,7 +652,22 @@ applyIceSlow(level) {
 
     // 只有Boss本體掉落
     if (this.isBoss && !this.isClone) {
-      game.powerups.push({ x: this.x, y: this.y, r: 16, hitR: 13, ttl: 16, text: "POWERUP" });
+      let dropCount = 1;
+      if (game.time >= 120) {
+        const roll = Math.random();
+        if (roll < 0.2) dropCount = 3;
+        else if (roll < 0.7) dropCount = 2;
+      }
+      for (let i = 0; i < dropCount; i++) {
+        game.powerups.push({
+          x: clamp(this.x + rand(-24, 24), 20, W() - 20),
+          y: clamp(this.y + rand(-24, 24), 20, H() - 20),
+          r: 16,
+          hitR: 13,
+          ttl: 16,
+          text: "POWERUP"
+        });
+      }
     }
 
     if (this.hasAffix(AFFIX.FIRE)) {
@@ -1068,6 +1083,20 @@ function applyElementEffect(hit) {
 
   if (game.element === "ice") {
     hit.applyIceSlow(lv);
+    if (lv >= 3) {
+      // Frostbite starts at Lv3: adds extra on-hit damage.
+      const frostDmg = 0.35 + (lv - 3) * 0.22;
+      hit.onHitByPlayer(frostDmg);
+
+      // Root chance scales with level; capped to avoid perma-lock.
+      const rootChance = Math.min(0.5, 0.12 + (lv - 3) * 0.04);
+      if (Math.random() < rootChance) {
+        const rootTime = Math.min(1.0, 0.35 + (lv - 3) * 0.05);
+        hit.freeze = Math.max(hit.freeze, rootTime);
+        game.effects.rings.push({ x: hit.x, y: hit.y, r: 0, maxR: 34 + lv * 3, life: 0.2, color: "185,240,255" });
+      }
+    }
+
     const ir = 20 + lv * 4;
     game.effects.rings.push({ x: hit.x, y: hit.y, r: 0, maxR: ir, life: 0.2, color: "120,200,255" });
     game.effects.rings.push({ x: hit.x, y: hit.y, r: 0, maxR: ir * 0.65, life: 0.16, color: "210,245,255" });
@@ -1252,7 +1281,7 @@ function updateMedkits(dt) {
 
   game.medkitTimer -= dt;
   if (game.medkitTimer <= 0) {
-    game.medkitTimer = rand(30, 60);
+    game.medkitTimer = rand(15, 40);
     spawnMedkit();
   }
 
@@ -1569,7 +1598,7 @@ function resetGame() {
   game.firstPowerupGiven = false;
   game.firstMedkitGiven = false;
   game.curseActive = false;
-  game.medkitTimer = rand(30, 60);
+  game.medkitTimer = rand(15, 40);
   game.finalBossIntroOpen = false;
   game.finalBossSpawned = false;
   game.finalBossDefeated = false;
