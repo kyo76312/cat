@@ -114,7 +114,7 @@
 <canvas id="game"></canvas>
 
 <div id="hud">
-  <div id="hudVersion">版本號：02260946</div>
+  <div id="hudVersion">版本號：02260954</div>
   <div id="hudHp">生命：200</div>
   <div id="hudTime">時間：0.0s</div>
   <div id="hudCombo">連殺：0</div>
@@ -578,7 +578,7 @@ class Enemy {
     this.affixes.add(k);
   }
 
-  if (this.affixes.has(AFFIX.TANK)) this.maxHp *= 3;
+  if (this.affixes.has(AFFIX.TANK)) this.maxHp *= 1.5;
   if (this.affixes.has(AFFIX.TANK)) {
     this.r *= 1.5;
     this.hitR *= 1.5;
@@ -1277,6 +1277,13 @@ function spawnMedkit() {
   });
 }
 
+function nextMedkitIntervalByHp(hp) {
+  if (hp < 40) return rand(5, 12);
+  if (hp < 70) return rand(7, 18);
+  if (hp < 100) return rand(10, 26);
+  return rand(15, 40);
+}
+
 function updateMedkits(dt) {
   if (!game.firstMedkitGiven && game.time >= 20) {
     game.firstMedkitGiven = true;
@@ -1285,8 +1292,14 @@ function updateMedkits(dt) {
 
   game.medkitTimer -= dt;
   if (game.medkitTimer <= 0) {
-    game.medkitTimer = rand(15, 40);
-    spawnMedkit();
+    const hp = game.player.hp;
+    // In danger zone, avoid flooding by limiting to 2 on field.
+    if (hp < 40 && game.medkits.length >= 2) {
+      game.medkitTimer = rand(3, 7);
+    } else {
+      game.medkitTimer = nextMedkitIntervalByHp(hp);
+      spawnMedkit();
+    }
   }
 
   for (const m of game.medkits) {
