@@ -112,7 +112,7 @@
 <canvas id="game"></canvas>
 
 <div id="hud">
-  <div id="hudVersion">版本號：02260811</div>
+  <div id="hudVersion">版本號：02260816</div>
   <div id="hudHp">生命：100</div>
   <div id="hudTime">時間：0.0s</div>
   <div id="hudCombo">連殺：0</div>
@@ -789,7 +789,7 @@ applyIceSlow(level) {
 
       const labels = [...this.affixes].map(k => AFFIX_ZH[k]).filter(Boolean);
       if (labels.length) {
-        const text = labels.join("锝?);
+        const text = labels.join("｜");
         ctx.font = "bold 11px monospace";
         ctx.textAlign = "center";
         const tw = ctx.measureText(text).width + 10;
@@ -1583,8 +1583,3 @@ requestAnimationFrame(loop);
 </script>
 </body>
 </html>
-```
-
-
-
-
