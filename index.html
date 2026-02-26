@@ -114,7 +114,7 @@
 <canvas id="game"></canvas>
 
 <div id="hud">
-  <div id="hudVersion">版本號：02261010</div>
+  <div id="hudVersion">版本號：02261020</div>
   <div id="hudHp">生命：200</div>
   <div id="hudTime">時間：0.0s</div>
   <div id="hudCombo">連殺：0</div>
@@ -303,7 +303,7 @@ const game = {
   enemyBullets: [],
   powerups: [],
   medkits: [],
-  effects: { rings: [], lines: [] },
+  effects: { rings: [], lines: [], snow: [] },
 
   score: 0,
   time: 0,
@@ -955,7 +955,7 @@ function spawnFinalBoss() {
   game.enemies = [];
   game.enemyBullets = [];
   game.playerBullets = [];
-  game.effects = { rings: [], lines: [] };
+  game.effects = { rings: [], lines: [], snow: [] };
   game.bossCount++;
   game.enemies.push(new Enemy({ isBoss: true, isFinalBoss: true, bossIndex: game.bossCount }));
   game.finalBossSpawned = true;
@@ -1058,6 +1058,39 @@ function makeLightningPoints(x1, y1, x2, y2, segments = 7, amp = 11) {
   return pts;
 }
 
+function spawnIceField(x, y, lv) {
+  if (lv < 3) return;
+  const r = 34 + lv * 5;
+  const dot = 0.28 + lv * 0.16;
+  const slowLv = Math.max(1, lv - 1);
+
+  let merged = null;
+  for (const s of game.effects.snow) {
+    if (Math.hypot(s.x - x, s.y - y) <= (s.r + r) * 0.45) {
+      merged = s;
+      break;
+    }
+  }
+
+  if (merged) {
+    merged.life = Math.max(merged.life, 3);
+    merged.r = Math.min(92, Math.max(merged.r, r + 4));
+    merged.dot = Math.max(merged.dot, dot);
+    merged.slowLv = Math.max(merged.slowLv, slowLv);
+    merged.tick = Math.min(merged.tick, 0.2);
+  } else {
+    game.effects.snow.push({
+      x, y,
+      r,
+      life: 3,
+      tick: 0.25,
+      dot,
+      slowLv,
+      phase: rand(0, Math.PI * 2)
+    });
+  }
+}
+
 function applyElementEffect(hit) {
   const lv = Math.max(1, game.upgrades.elementLv);
 
@@ -1100,33 +1133,6 @@ function applyElementEffect(hit) {
         game.effects.rings.push({ x: hit.x, y: hit.y, r: 0, maxR: 34 + lv * 3, life: 0.2, color: "185,240,255" });
       }
 
-      // Ice chain: tuned to spike at Lv4/Lv5.
-      let chainCount = 1;
-      if (lv >= 4) chainCount = 2;
-      if (lv >= 5) chainCount = 3;
-      const chainRange = 105 + lv * 14;
-      const chainDmg = 0.55 + lv * 0.3;
-      const used = new Set([hit.id]);
-      let from = hit;
-      while (chainCount > 0) {
-        const n = findNearestEnemy(from.x, from.y, used, chainRange);
-        if (!n) break;
-        used.add(n.id);
-        n.applyIceSlow(Math.max(1, lv - 2));
-        n.onHitByPlayer(chainDmg);
-        game.effects.lines.push({
-          x1: from.x,
-          y1: from.y,
-          x2: n.x,
-          y2: n.y,
-          life: 0.12,
-          color: "170,235,255",
-          points: makeLightningPoints(from.x, from.y, n.x, n.y, 6, 7 + lv * 0.7)
-        });
-        from = n;
-        chainCount--;
-      }
-
       // Shatter splash: gives ice better wave clear.
       const shatterR = 24 + lv * 6;
       const shatterDmg = 0.25 + lv * 0.18;
@@ -1135,6 +1141,9 @@ function applyElementEffect(hit) {
         if (!e.alive || e.id === hit.id) continue;
         if (Math.hypot(e.x - hit.x, e.y - hit.y) <= shatterR + e.hitR) e.onHitByPlayer(shatterDmg);
       }
+
+      // Lv3+ creates snowy ground for 3s that keeps applying frostbite.
+      spawnIceField(hit.x, hit.y, lv);
     }
 
     const ir = 20 + lv * 4;
@@ -1355,8 +1364,23 @@ function updateEffects(dt) {
   if (game.frenzy.time > 0) game.frenzy.time -= dt;
   for (const r of game.effects.rings) { r.life -= dt; r.r += (r.maxR / 0.22) * dt; }
   for (const l of game.effects.lines) l.life -= dt;
+  for (const s of game.effects.snow) {
+    s.life -= dt;
+    s.tick -= dt;
+    while (s.tick <= 0) {
+      s.tick += 0.4;
+      for (const e of game.enemies) {
+        if (!e.alive) continue;
+        if (Math.hypot(e.x - s.x, e.y - s.y) <= s.r + e.hitR) {
+          e.applyIceSlow(s.slowLv);
+          e.onHitByPlayer(s.dot);
+        }
+      }
+    }
+  }
   game.effects.rings = game.effects.rings.filter(r => r.life > 0);
   game.effects.lines = game.effects.lines.filter(l => l.life > 0);
+  game.effects.snow = game.effects.snow.filter(s => s.life > 0);
 }
 
 function updateBackground(dt) {
@@ -1502,6 +1526,37 @@ function drawMedkits() {
 }
 
 function drawEffects() {
+  for (const s of game.effects.snow) {
+    const a = Math.max(0, s.life / 3);
+    const rg = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r);
+    rg.addColorStop(0, `rgba(190,240,255,${0.16 * a})`);
+    rg.addColorStop(0.7, `rgba(120,200,235,${0.2 * a})`);
+    rg.addColorStop(1, "rgba(120,200,235,0)");
+    ctx.fillStyle = rg;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fill();
+
+    const pulse = 0.15 + (Math.sin(game.time * 7 + s.phase) + 1) * 0.1;
+    ctx.strokeStyle = `rgba(200,245,255,${(pulse + 0.1) * a})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r * (0.92 + pulse * 0.22), 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.strokeStyle = `rgba(225,250,255,${0.45 * a})`;
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 6; i++) {
+      const ang = s.phase + i * (Math.PI * 2 / 6);
+      const d1 = s.r * 0.25;
+      const d2 = s.r * 0.42;
+      ctx.beginPath();
+      ctx.moveTo(s.x + Math.cos(ang) * d1, s.y + Math.sin(ang) * d1);
+      ctx.lineTo(s.x + Math.cos(ang) * d2, s.y + Math.sin(ang) * d2);
+      ctx.stroke();
+    }
+  }
+
   for (const r of game.effects.rings) {
     const a = Math.max(0, r.life / 0.22);
     ctx.strokeStyle = `rgba(${r.color},${a})`;
@@ -1637,7 +1692,7 @@ function resetGame() {
   game.enemyBullets = [];
   game.powerups = [];
   game.medkits = [];
-  game.effects = { rings: [], lines: [] };
+  game.effects = { rings: [], lines: [], snow: [] };
   game.score = 0;
   game.time = 0;
   game.combo = 0;
