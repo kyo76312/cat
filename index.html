@@ -114,7 +114,7 @@
 <canvas id="game"></canvas>
 
 <div id="hud">
-  <div id="hudVersion">版本號：02261001</div>
+  <div id="hudVersion">版本號：02261010</div>
   <div id="hudHp">生命：200</div>
   <div id="hudTime">時間：0.0s</div>
   <div id="hudCombo">連殺：0</div>
@@ -1088,22 +1088,24 @@ function applyElementEffect(hit) {
   if (game.element === "ice") {
     hit.applyIceSlow(lv);
     if (lv >= 3) {
-      // Frostbite starts at Lv3: adds extra on-hit damage.
-      const frostDmg = 0.5 + (lv - 3) * 0.3;
+      // Tuned for practical Lv3~Lv5 progression.
+      const frostDmg = 1.1 + (lv - 3) * 0.75;
       hit.onHitByPlayer(frostDmg);
 
       // Root chance scales with level; capped to avoid perma-lock.
-      const rootChance = Math.min(0.5, 0.12 + (lv - 3) * 0.04);
+      const rootChance = Math.min(0.5, 0.18 + (lv - 3) * 0.12);
       if (Math.random() < rootChance) {
-        const rootTime = Math.min(1.0, 0.35 + (lv - 3) * 0.05);
+        const rootTime = Math.min(1.1, 0.4 + (lv - 3) * 0.1);
         hit.freeze = Math.max(hit.freeze, rootTime);
         game.effects.rings.push({ x: hit.x, y: hit.y, r: 0, maxR: 34 + lv * 3, life: 0.2, color: "185,240,255" });
       }
 
-      // Ice chain: Lv3+ chains to 1 nearby target, Lv6+ chains to 2.
-      let chainCount = lv >= 6 ? 2 : 1;
-      const chainRange = 95 + lv * 12;
-      const chainDmg = 0.3 + lv * 0.12;
+      // Ice chain: tuned to spike at Lv4/Lv5.
+      let chainCount = 1;
+      if (lv >= 4) chainCount = 2;
+      if (lv >= 5) chainCount = 3;
+      const chainRange = 105 + lv * 14;
+      const chainDmg = 0.55 + lv * 0.3;
       const used = new Set([hit.id]);
       let from = hit;
       while (chainCount > 0) {
@@ -1123,6 +1125,15 @@ function applyElementEffect(hit) {
         });
         from = n;
         chainCount--;
+      }
+
+      // Shatter splash: gives ice better wave clear.
+      const shatterR = 24 + lv * 6;
+      const shatterDmg = 0.25 + lv * 0.18;
+      game.effects.rings.push({ x: hit.x, y: hit.y, r: 0, maxR: shatterR, life: 0.14, color: "200,245,255" });
+      for (const e of game.enemies) {
+        if (!e.alive || e.id === hit.id) continue;
+        if (Math.hypot(e.x - hit.x, e.y - hit.y) <= shatterR + e.hitR) e.onHitByPlayer(shatterDmg);
       }
     }
 
