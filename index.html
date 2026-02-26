@@ -1,4 +1,4 @@
-```0517---0544
+```02260710
 <!doctype html>
 <html lang="zh-Hant">
 <head>
@@ -307,6 +307,7 @@ const game = {
   paused: false,
   pendingPowerup: 0,
   firstPowerupGiven: false,
+  curseActive: false,
 
   element: null,
   upgrades: { elementLv: 0, spread: 0, bounce: 0, damage: 0 },
@@ -342,6 +343,12 @@ function elementName(t) {
 function currentMobKey() {
   const idx = Math.min(MOB_ORDER.length - 1, Math.floor(game.time / 30));
   return MOB_ORDER[idx];
+}
+
+function bossHpScaleByTime(t) {
+  if (t >= 60) return 1;
+  // First minute ramps from 62% to 100%.
+  return 0.62 + (t / 60) * 0.38;
 }
 
 class Player {
@@ -485,7 +492,8 @@ class Enemy {
       this.r = 22;
       this.hitR = 14;
       this.baseDamage = 10;
-      this.maxHp = 55 + game.bossCount * 10 + game.time * 0.25;
+      const rawBossHp = 55 + game.bossCount * 10 + game.time * 0.25;
+      this.maxHp = rawBossHp * bossHpScaleByTime(game.time);
       this.hp = this.maxHp;
       this.affixes = new Set();
       this.assignBossAffixes();
@@ -532,6 +540,10 @@ class Enemy {
   }
 
   if (this.affixes.has(AFFIX.TANK)) this.maxHp *= 3;
+  if (this.affixes.has(AFFIX.TANK)) {
+    this.r *= 1.5;
+    this.hitR *= 1.5;
+  }
   this.hp = this.maxHp;
 }
 
@@ -548,10 +560,33 @@ applyIceSlow(level) {
   onHitByPlayer(dmg) {
     if (!this.alive) return;
 
-    if (this.hasAffix(AFFIX.LIGHTNING) && game.time - this.lastLightningShot >= 0.125) {
+    if (this.hasAffix(AFFIX.LIGHTNING) && game.time - this.lastLightningShot >= 0.3) {
       this.lastLightningShot = game.time;
-      const a = rand(0, Math.PI * 2), sp = 250;
-      game.enemyBullets.push({ x: this.x, y: this.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 4, hitR: 3.5, life: 2.2, dmg: 4, color: "rgba(120,190,255,.95)" });
+      const sp = 250;
+      for (let i = 0; i < 8; i++) {
+        const a = i * (Math.PI * 2 / 8);
+        game.enemyBullets.push({
+          x: this.x,
+          y: this.y,
+          vx: Math.cos(a) * sp,
+          vy: Math.sin(a) * sp,
+          r: 4.4,
+          hitR: 3.8,
+          life: 2.3,
+          dmg: 4,
+          color: "rgba(120,190,255,.95)",
+          swirl: true,
+          ox: this.x,
+          oy: this.y,
+          dirx: Math.cos(a),
+          diry: Math.sin(a),
+          speed: sp,
+          t: 0,
+          swirlR: 10,
+          swirlW: 13,
+          phase: rand(0, Math.PI * 2)
+        });
+      }
     }
 
     this.hp -= dmg;
@@ -599,14 +634,16 @@ applyIceSlow(level) {
     }
 
     if (this.hasAffix(AFFIX.FIRE)) {
-      const r = 58;
-      game.effects.rings.push({ x: this.x, y: this.y, r: 0, maxR: r, life: 0.24, color: "255,80,60" });
+      const r = 86;
+      game.effects.rings.push({ x: this.x, y: this.y, r: 0, maxR: r, life: 0.34, color: "255,80,60" });
+      game.effects.rings.push({ x: this.x, y: this.y, r: 0, maxR: r * 0.72, life: 0.26, color: "255,170,90" });
       if (Math.hypot(game.player.x - this.x, game.player.y - this.y) <= r + game.player.hitR) game.player.hurt(this.getDamage());
     }
 
     if (this.hasAffix(AFFIX.ICE)) {
-      const r = 66;
-      game.effects.rings.push({ x: this.x, y: this.y, r: 0, maxR: r, life: 0.26, color: "130,210,255" });
+      const r = 96;
+      game.effects.rings.push({ x: this.x, y: this.y, r: 0, maxR: r, life: 0.36, color: "130,210,255" });
+      game.effects.rings.push({ x: this.x, y: this.y, r: 0, maxR: r * 0.74, life: 0.28, color: "200,245,255" });
       if (Math.hypot(game.player.x - this.x, game.player.y - this.y) <= r + game.player.hitR) {
         game.player.hurt(this.getDamage() * 0.8);
         game.player.freeze = Math.max(game.player.freeze, 3);
@@ -713,22 +750,24 @@ function getAimDir() {
 
 function spawnPlayerBullets() {
   const rows = 1 + game.upgrades.spread;
-  const center = (rows - 1) / 2;
-  const gap = 13;
   const sp = 680;
 
   const dir = getAimDir();
-  const px = -dir.y;
-  const py = dir.x;
+  const baseAngle = Math.atan2(dir.y, dir.x);
+  const spreadLv = game.upgrades.spread;
+  const maxAngle = Math.PI * 2 / 3; // 120deg
+  const totalAngle = spreadLv <= 10 ? maxAngle * (spreadLv / 10) : maxAngle;
   const frenzy = game.frenzy.time > 0 ? game.frenzy.dmgMul : 1;
 
   for (let i = 0; i < rows; i++) {
-    const off = (i - center) * gap;
+    const t = rows === 1 ? 0.5 : i / (rows - 1);
+    const rel = (t - 0.5) * totalAngle;
+    const a = baseAngle + rel;
     game.playerBullets.push({
-      x: game.player.x + px * off,
-      y: game.player.y + py * off,
-      vx: dir.x * sp,
-      vy: dir.y * sp,
+      x: game.player.x,
+      y: game.player.y,
+      vx: Math.cos(a) * sp,
+      vy: Math.sin(a) * sp,
       r: 5,
       hitR: 4.2,
       alive: true,
@@ -872,8 +911,17 @@ function updatePlayerBullets(dt) {
 
 function updateEnemyBullets(dt) {
   for (const b of game.enemyBullets) {
-    b.x += b.vx * dt;
-    b.y += b.vy * dt;
+    if (b.swirl) {
+      b.t += dt;
+      const cx = b.ox + b.dirx * b.speed * b.t;
+      const cy = b.oy + b.diry * b.speed * b.t;
+      const w = b.phase + b.swirlW * b.t;
+      b.x = cx + Math.cos(w) * b.swirlR;
+      b.y = cy + Math.sin(w) * b.swirlR;
+    } else {
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+    }
     b.life -= dt;
 
     if (b.life <= 0 || b.x < -40 || b.x > W() + 40 || b.y < -40 || b.y > H() + 40) b.dead = true;
@@ -907,6 +955,7 @@ function updateEnemies(dt) {
   }
 
   if (add.length) game.enemies.push(...add);
+  game.curseActive = curse;
   game.player.speedMul = curse ? 0.7 : 1;
   game.enemies = game.enemies.filter(e => e.alive);
 }
@@ -1088,6 +1137,21 @@ function drawEffects() {
   }
 }
 
+function drawCurseHint() {
+  if (!game.curseActive) return;
+  const a = 0.72 + Math.sin(game.time * 11) * 0.2;
+  const x = game.player.x;
+  const y = game.player.y - 26;
+  ctx.font = "bold 14px monospace";
+  ctx.textAlign = "center";
+  const txt = "衰老";
+  const tw = ctx.measureText(txt).width + 12;
+  ctx.fillStyle = `rgba(25,10,10,${a * 0.9})`;
+  ctx.fillRect(x - tw / 2, y - 14, tw, 18);
+  ctx.fillStyle = `rgba(255,170,170,${a})`;
+  ctx.fillText(txt, x, y);
+}
+
 function updateHUD() {
   const cm = 1 + Math.min(3, game.combo * 0.08);
   const dm = 1 + (1 - game.player.hp / game.player.maxHp) * 0.55;
@@ -1149,6 +1213,7 @@ function draw() {
   drawPowerups();
   drawEffects();
   game.player.draw();
+  drawCurseHint();
   updateHUD();
 }
 
@@ -1194,6 +1259,7 @@ function resetGame() {
   game.paused = false;
   game.pendingPowerup = 0;
   game.firstPowerupGiven = false;
+  game.curseActive = false;
   game.element = null;
   game.upgrades = { elementLv: 0, spread: 0, bounce: 0, damage: 0 };
   game.frenzy = { time: 0, rateMul: 1.4, dmgMul: 1.25, milestone: 0 };
@@ -1295,4 +1361,3 @@ requestAnimationFrame(loop);
 </body>
 </html>
 ```
-
