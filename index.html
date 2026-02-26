@@ -114,7 +114,7 @@
 <canvas id="game"></canvas>
 
 <div id="hud">
-  <div id="hudVersion">版本號：02260954</div>
+  <div id="hudVersion">版本號：02261001</div>
   <div id="hudHp">生命：200</div>
   <div id="hudTime">時間：0.0s</div>
   <div id="hudCombo">連殺：0</div>
@@ -1089,7 +1089,7 @@ function applyElementEffect(hit) {
     hit.applyIceSlow(lv);
     if (lv >= 3) {
       // Frostbite starts at Lv3: adds extra on-hit damage.
-      const frostDmg = 0.35 + (lv - 3) * 0.22;
+      const frostDmg = 0.5 + (lv - 3) * 0.3;
       hit.onHitByPlayer(frostDmg);
 
       // Root chance scales with level; capped to avoid perma-lock.
@@ -1098,6 +1098,31 @@ function applyElementEffect(hit) {
         const rootTime = Math.min(1.0, 0.35 + (lv - 3) * 0.05);
         hit.freeze = Math.max(hit.freeze, rootTime);
         game.effects.rings.push({ x: hit.x, y: hit.y, r: 0, maxR: 34 + lv * 3, life: 0.2, color: "185,240,255" });
+      }
+
+      // Ice chain: Lv3+ chains to 1 nearby target, Lv6+ chains to 2.
+      let chainCount = lv >= 6 ? 2 : 1;
+      const chainRange = 95 + lv * 12;
+      const chainDmg = 0.3 + lv * 0.12;
+      const used = new Set([hit.id]);
+      let from = hit;
+      while (chainCount > 0) {
+        const n = findNearestEnemy(from.x, from.y, used, chainRange);
+        if (!n) break;
+        used.add(n.id);
+        n.applyIceSlow(Math.max(1, lv - 2));
+        n.onHitByPlayer(chainDmg);
+        game.effects.lines.push({
+          x1: from.x,
+          y1: from.y,
+          x2: n.x,
+          y2: n.y,
+          life: 0.12,
+          color: "170,235,255",
+          points: makeLightningPoints(from.x, from.y, n.x, n.y, 6, 7 + lv * 0.7)
+        });
+        from = n;
+        chainCount--;
       }
     }
 
