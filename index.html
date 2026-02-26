@@ -1,10 +1,9 @@
-```02260801
 <!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>貓咪生存</title>
+  <title>貓貓生存</title>
   <style>
     :root { --panel: rgba(0,0,0,.45); --joy: 128px; }
     * { box-sizing: border-box; }
@@ -113,6 +112,7 @@
 <canvas id="game"></canvas>
 
 <div id="hud">
+  <div id="hudVersion">版本號：02260811</div>
   <div id="hudHp">生命：100</div>
   <div id="hudTime">時間：0.0s</div>
   <div id="hudCombo">連殺：0</div>
@@ -128,17 +128,17 @@
 
 <div id="elementModal" class="overlay">
   <div class="panel">
-    <h2>閬告搰灞€у綀</h2>
-    <p class="desc">棣栨鍚冨埌 POWERUP 鏅傞伕鎿?/p>
-    <button class="btn" id="pickFire">鐏綀锛氬懡涓垎鐐?/button>
-    <button class="btn" id="pickIce">鍐板綀锛氬懡涓珐閫燂紙Lv1:20%锛屾瘡绱?10%锛?/button>
-    <button class="btn" id="pickThunder">闆峰綀锛氬懡涓€ｉ帠闁冮浕</button>
+    <h2>選擇屬性彈</h2>
+    <p class="desc">首次吃到 POWERUP 時選擇</p>
+    <button class="btn" id="pickFire">火彈：命中爆炸</button>
+    <button class="btn" id="pickIce">冰彈：命中緩速（Lv1:20%，每級+10%）</button>
+    <button class="btn" id="pickThunder">雷彈：命中連鎖閃電</button>
   </div>
 </div>
 
 <div id="upgradeModal" class="overlay">
   <div class="panel">
-    <h2>閬告搰鍗囩礆</h2>
+    <h2>選擇升級</h2>
     <p class="desc" id="upDesc"></p>
     <button class="btn" id="upElement"></button>
     <button class="btn" id="upSpread"></button>
@@ -153,7 +153,7 @@
   <div class="panel">
     <h2 style="color:#ff8f8f">GAME OVER</h2>
     <p class="desc" id="result"></p>
-    <button id="restartBtn" class="btn main">閲嶆柊闁嬪</button>
+    <button id="restartBtn" class="btn main">重新開始</button>
   </div>
 </div>
 
@@ -172,18 +172,18 @@ const AFFIX = {
 };
 
 const AFFIX_ZH = {
-  tank: "鐗瑰垾寮峰／",
-  fast: "鐗瑰垾蹇€?,
-  curse: "琛拌€佽鍜?,
-  fire: "鐏劙寮峰寲",
-  ice: "鍐板噸寮峰寲",
-  lightning: "闁冮浕寮峰寲",
-  multi: "澶氶噸灏勬搳",
-  teleport: "鍌抽€?,
-  split: "鍒嗚"
+  tank: "特別強壯",
+  fast: "特別快速",
+  curse: "衰老詛咒",
+  fire: "火焰強化",
+  ice: "冰凍強化",
+  lightning: "閃電強化",
+  multi: "多重射擊",
+  teleport: "傳送",
+  split: "分裂"
 };
 
-AFFIX_ZH[AFFIX.DASH] = "琛濆埡";
+AFFIX_ZH[AFFIX.DASH] = "衝刺";
 
 const MOB_ORDER = [
   "World01_001_GreenGoo",
@@ -331,10 +331,10 @@ function circleHit(a, b) {
 }
 
 function elementName(t) {
-  if (t === "fire") return "鐏綀";
-  if (t === "ice") return "鍐板綀";
-  if (t === "thunder") return "闆峰綀";
-  return "鏈伕鎿?;
+  if (t === "fire") return "火彈";
+  if (t === "ice") return "冰彈";
+  if (t === "thunder") return "雷彈";
+  return "未選擇";
 }
 
 function currentMobKey() {
@@ -532,7 +532,7 @@ class Enemy {
     AFFIX.LIGHTNING, AFFIX.DASH, AFFIX.MULTI, AFFIX.TELEPORT, AFFIX.SPLIT
   ];
 
-  // 2鍒嗛悩鍓嶄笉鍏佽ū鍑虹従澶氶噸灏勬搳
+  // 2分鐘前不允許出現多重射擊
   if (game.time < 120) {
     pool = pool.filter(k => k !== AFFIX.MULTI);
   }
@@ -610,7 +610,7 @@ applyIceSlow(level) {
     this.alive = false;
     addScore(this.isBoss ? 35 : 4);
 
-    // 鍙湁Boss鏈珨鎺夎惤
+    // 只有Boss本體掉落
     if (this.isBoss && !this.isClone) {
       game.powerups.push({ x: this.x, y: this.y, r: 16, hitR: 13, ttl: 16, text: "POWERUP" });
     }
@@ -1239,13 +1239,13 @@ function chooseElement(type) {
 function refreshUpgradeButtons() {
   const lv = game.upgrades.elementLv;
   const n = elementName(game.element);
-  upDesc.textContent = `鐩墠灞€э細${n}`;
-  upElement.textContent = `${n} 寮峰寲 Lv${lv} -> Lv${lv + 1}`;
-  upSpread.textContent = `鏁ｅ皠 Lv${game.upgrades.spread}锛氬涓€鎺掑瓙褰坄;
-  upBounce.textContent = `褰堝皠 Lv${game.upgrades.bounce}锛氬懡涓緦鍐嶅綀涓€娆;
-  upDamage.textContent = `閲嶆搳 Lv${game.upgrades.damage}锛氬瓙褰堝偡瀹虫彁鍗嘸;
+  upDesc.textContent = `目前屬性：${n}`;
+  upElement.textContent = `${n} 強化 Lv${lv} -> Lv${lv + 1}`;
+  upSpread.textContent = `散射 Lv${game.upgrades.spread}：多一排子彈`;
+  upBounce.textContent = `彈射 Lv${game.upgrades.bounce}：命中後再彈一次`;
+  upDamage.textContent = `重擊 Lv${game.upgrades.damage}：子彈傷害提升`;
   upHeal.style.display = "none";
-  upQueue.textContent = `寰呴伕鍗囩礆锛?{game.pendingPowerup}`;
+  upQueue.textContent = `待選升級：${game.pendingPowerup}`;
 }
 
 function chooseUpgrade(type) {
@@ -1371,7 +1371,7 @@ function drawCurseHint() {
   const y = game.player.y - 26;
   ctx.font = "bold 14px monospace";
   ctx.textAlign = "center";
-  const txt = "琛拌€?;
+  const txt = "衰老";
   const tw = ctx.measureText(txt).width + 12;
   ctx.fillStyle = `rgba(25,10,10,${a * 0.9})`;
   ctx.fillRect(x - tw / 2, y - 14, tw, 18);
@@ -1584,4 +1584,7 @@ requestAnimationFrame(loop);
 </body>
 </html>
 ```
+
+
+
 
