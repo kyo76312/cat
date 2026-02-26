@@ -1,4 +1,4 @@
-```02260710
+```02260728
 <!doctype html>
 <html lang="zh-Hant">
 <head>
@@ -170,6 +170,7 @@ const AFFIX = {
   FIRE: "fire",
   ICE: "ice",
   LIGHTNING: "lightning",
+  DASH: "dash",
   MULTI: "multi",
   TELEPORT: "teleport",
   SPLIT: "split"
@@ -186,6 +187,8 @@ const AFFIX_ZH = {
   teleport: "傳送",
   split: "分裂"
 };
+
+AFFIX_ZH[AFFIX.DASH] = "衝刺";
 
 const MOB_ORDER = [
   "World01_001_GreenGoo",
@@ -259,6 +262,7 @@ const upBounce = document.getElementById("upBounce");
 const upDamage = document.getElementById("upDamage");
 const upHeal = document.getElementById("upHeal");
 const upQueue = document.getElementById("upQueue");
+upHeal.style.display = "none";
 
 const gameOverModal = document.getElementById("gameOverModal");
 const result = document.getElementById("result");
@@ -291,6 +295,7 @@ const game = {
   playerBullets: [],
   enemyBullets: [],
   powerups: [],
+  medkits: [],
   effects: { rings: [], lines: [] },
 
   score: 0,
@@ -308,6 +313,7 @@ const game = {
   pendingPowerup: 0,
   firstPowerupGiven: false,
   curseActive: false,
+  medkitTimer: 45,
 
   element: null,
   upgrades: { elementLv: 0, spread: 0, bounce: 0, damage: 0 },
@@ -455,7 +461,13 @@ class Enemy {
 
     this.pendingSpawn = [];
     this.lastLightningShot = 0;
+    this.lightningWarn = 0;
+    this.pendingLightningBurst = false;
     this.multiCd = 0.5;
+    this.dashCd = rand(1.2, 2);
+    this.dashTime = 0;
+    this.dashVx = 0;
+    this.dashVy = 0;
     this.teleportStep = 0;
     this.splitStage = 0;
 
@@ -524,7 +536,7 @@ class Enemy {
 
   let pool = [
     AFFIX.TANK, AFFIX.FAST, AFFIX.CURSE, AFFIX.FIRE, AFFIX.ICE,
-    AFFIX.LIGHTNING, AFFIX.MULTI, AFFIX.TELEPORT, AFFIX.SPLIT
+    AFFIX.LIGHTNING, AFFIX.DASH, AFFIX.MULTI, AFFIX.TELEPORT, AFFIX.SPLIT
   ];
 
   // 2分鐘前不允許出現多重射擊
@@ -562,31 +574,8 @@ applyIceSlow(level) {
 
     if (this.hasAffix(AFFIX.LIGHTNING) && game.time - this.lastLightningShot >= 0.3) {
       this.lastLightningShot = game.time;
-      const sp = 250;
-      for (let i = 0; i < 8; i++) {
-        const a = i * (Math.PI * 2 / 8);
-        game.enemyBullets.push({
-          x: this.x,
-          y: this.y,
-          vx: Math.cos(a) * sp,
-          vy: Math.sin(a) * sp,
-          r: 4.4,
-          hitR: 3.8,
-          life: 2.3,
-          dmg: 4,
-          color: "rgba(120,190,255,.95)",
-          swirl: true,
-          ox: this.x,
-          oy: this.y,
-          dirx: Math.cos(a),
-          diry: Math.sin(a),
-          speed: sp,
-          t: 0,
-          swirlR: 10,
-          swirlW: 13,
-          phase: rand(0, Math.PI * 2)
-        });
-      }
+      this.pendingLightningBurst = true;
+      this.lightningWarn = Math.max(this.lightningWarn, 0.2);
     }
 
     this.hp -= dmg;
@@ -657,30 +646,82 @@ applyIceSlow(level) {
     if (this.freeze > 0) this.freeze -= dt;
     if (this.slowTimer > 0) this.slowTimer -= dt;
     if (this.slowTimer <= 0) this.slowMul = 1;
+    if (this.lightningWarn > 0) {
+      this.lightningWarn -= dt;
+      if (this.lightningWarn <= 0 && this.pendingLightningBurst) {
+        this.pendingLightningBurst = false;
+        const sp = 250;
+        for (let i = 0; i < 8; i++) {
+          const a = i * (Math.PI * 2 / 8);
+          game.enemyBullets.push({
+            x: this.x,
+            y: this.y,
+            vx: Math.cos(a) * sp,
+            vy: Math.sin(a) * sp,
+            r: 4.8,
+            hitR: 4.2,
+            life: 2.4,
+            dmg: 4,
+            color: "rgba(145,215,255,.98)",
+            swirl: true,
+            ox: this.x,
+            oy: this.y,
+            dirx: Math.cos(a),
+            diry: Math.sin(a),
+            speed: sp,
+            t: 0,
+            swirlR: 11,
+            swirlW: 14.5,
+            phase: rand(0, Math.PI * 2)
+          });
+        }
+      }
+    }
 
     if (this.freeze <= 0) {
       const dx = game.player.x - this.x;
       const dy = game.player.y - this.y;
       const d = Math.hypot(dx, dy) || 1;
 
-      let home = this.isBoss ? 20 : 14;
-      if (this.hasAffix(AFFIX.FAST)) home *= 1.8;
-
-      this.vx += (dx / d) * home * dt;
-      this.vy += (dy / d) * home * dt;
-
-      let maxSp = this.isBoss ? 120 : 145;
-      if (this.hasAffix(AFFIX.FAST)) maxSp *= 2;
-      maxSp *= this.slowMul;
-
-      const cur = Math.hypot(this.vx, this.vy) || 1;
-      if (cur > maxSp) {
-        this.vx = this.vx / cur * maxSp;
-        this.vy = this.vy / cur * maxSp;
+      if (this.isBoss && this.hasAffix(AFFIX.DASH)) {
+        this.dashCd -= dt;
+        if (this.dashCd <= 0 && this.dashTime <= 0) {
+          this.dashCd = 2;
+          this.dashTime = 0.22;
+          const ux = dx / d;
+          const uy = dy / d;
+          const dashSp = 540;
+          this.dashVx = ux * dashSp;
+          this.dashVy = uy * dashSp;
+          game.effects.lines.push({ x1: this.x, y1: this.y, x2: this.x + ux * 72, y2: this.y + uy * 72, life: 0.14, color: "255,120,120" });
+          game.effects.rings.push({ x: this.x, y: this.y, r: 0, maxR: 28, life: 0.12, color: "255,120,120" });
+        }
       }
 
-      this.x += this.vx * dt;
-      this.y += this.vy * dt;
+      if (this.dashTime > 0) {
+        this.dashTime -= dt;
+        this.x += this.dashVx * dt;
+        this.y += this.dashVy * dt;
+      } else {
+        let home = this.isBoss ? 20 : 14;
+        if (this.hasAffix(AFFIX.FAST)) home *= 1.8;
+
+        this.vx += (dx / d) * home * dt;
+        this.vy += (dy / d) * home * dt;
+
+        let maxSp = this.isBoss ? 120 : 145;
+        if (this.hasAffix(AFFIX.FAST)) maxSp *= 2;
+        maxSp *= this.slowMul;
+
+        const cur = Math.hypot(this.vx, this.vy) || 1;
+        if (cur > maxSp) {
+          this.vx = this.vx / cur * maxSp;
+          this.vy = this.vy / cur * maxSp;
+        }
+
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+      }
     }
 
     if (this.x < this.r) { this.x = this.r; this.vx = Math.abs(this.vx); }
@@ -688,12 +729,13 @@ applyIceSlow(level) {
     if (this.y < this.r) { this.y = this.r; this.vy = Math.abs(this.vy); }
     if (this.y > H() - this.r) { this.y = H() - this.r; this.vy = -Math.abs(this.vy); }
 
-    if (this.isBoss && this.hasAffix(AFFIX.MULTI)) {
+    if (this.isBoss) {
       this.multiCd -= dt;
       if (this.multiCd <= 0) {
         this.multiCd = 0.5;
         const base = Math.atan2(game.player.y - this.y, game.player.x - this.x);
-        [-0.18, 0, 0.18].forEach(off => {
+        const spread = this.hasAffix(AFFIX.MULTI) ? [-0.18, 0, 0.18] : [0];
+        spread.forEach(off => {
           const a = base + off, sp = 260;
           game.enemyBullets.push({ x: this.x, y: this.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 4, hitR: 3.5, life: 2.6, dmg: 5, color: "rgba(255,180,120,.95)" });
         });
@@ -721,6 +763,32 @@ applyIceSlow(level) {
     }
 
     if (this.isBoss) {
+      if (this.hasAffix(AFFIX.FIRE) || this.hasAffix(AFFIX.ICE)) {
+        const rr = this.hasAffix(AFFIX.ICE) ? 96 : 86;
+        const c = this.hasAffix(AFFIX.ICE) ? "130,210,255" : "255,90,70";
+        const pulse = 0.18 + (Math.sin(game.time * 12 + this.id) + 1) * 0.2;
+        ctx.strokeStyle = `rgba(${c},${pulse})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, rr, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      if (this.hasAffix(AFFIX.LIGHTNING) && this.lightningWarn > 0) {
+        const t = this.lightningWarn / 0.2;
+        const a = 0.35 + (1 - t) * 0.45;
+        ctx.strokeStyle = `rgba(170,230,255,${a})`;
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 8; i++) {
+          const ang = i * Math.PI / 4;
+          const len = 26 + (1 - t) * 18;
+          ctx.beginPath();
+          ctx.moveTo(this.x, this.y);
+          ctx.lineTo(this.x + Math.cos(ang) * len, this.y + Math.sin(ang) * len);
+          ctx.stroke();
+        }
+      }
+
       ctx.fillStyle = "#000";
       ctx.fillRect(this.x - 34, this.y - this.r - 12, 68, 5);
       ctx.fillStyle = "#ff6565";
@@ -988,6 +1056,36 @@ function updatePowerups(dt) {
   game.powerups = game.powerups.filter(p => p.ttl > 0);
 }
 
+function spawnMedkit() {
+  game.medkits.push({
+    x: rand(42, W() - 42),
+    y: rand(42, H() - 42),
+    r: 16,
+    hitR: 13,
+    ttl: 28,
+    text: "HP"
+  });
+}
+
+function updateMedkits(dt) {
+  game.medkitTimer -= dt;
+  if (game.medkitTimer <= 0) {
+    game.medkitTimer = rand(30, 60);
+    spawnMedkit();
+  }
+
+  for (const m of game.medkits) {
+    m.ttl -= dt;
+    m.y += Math.sin((game.time + m.x) * 2.2) * 0.12;
+    if (circleHit(m, game.player)) {
+      m.ttl = -1;
+      game.player.hp = Math.min(game.player.maxHp, game.player.hp + 50);
+      game.effects.rings.push({ x: game.player.x, y: game.player.y, r: 0, maxR: 44, life: 0.26, color: "120,255,145" });
+    }
+  }
+  game.medkits = game.medkits.filter(m => m.ttl > 0);
+}
+
 
 function updateEffects(dt) {
   if (game.frenzy.time > 0) game.frenzy.time -= dt;
@@ -1045,7 +1143,7 @@ function refreshUpgradeButtons() {
   upSpread.textContent = `散射 Lv${game.upgrades.spread}：多一排子彈`;
   upBounce.textContent = `彈射 Lv${game.upgrades.bounce}：命中後再彈一次`;
   upDamage.textContent = `重擊 Lv${game.upgrades.damage}：子彈傷害提升`;
-  upHeal.textContent = `急救：回復 50 HP`;
+  upHeal.style.display = "none";
   upQueue.textContent = `待選升級：${game.pendingPowerup}`;
 }
 
@@ -1054,7 +1152,6 @@ function chooseUpgrade(type) {
   if (type === "spread") game.upgrades.spread++;
   if (type === "bounce") game.upgrades.bounce++;
   if (type === "damage") game.upgrades.damage++;
-  if (type === "heal") game.player.hp = Math.min(game.player.maxHp, game.player.hp + 50);
 
   game.pendingPowerup--;
   if (game.pendingPowerup > 0) refreshUpgradeButtons();
@@ -1118,6 +1215,20 @@ function drawPowerups() {
     ctx.font = "bold 15px monospace";
     ctx.fillStyle = "#ffd963";
     ctx.fillText(p.text, p.x, p.y);
+  }
+}
+
+function drawMedkits() {
+  for (const m of game.medkits) {
+    ctx.textAlign = "center";
+    ctx.font = "bold 16px monospace";
+    ctx.fillStyle = "#7bff9d";
+    ctx.fillText(m.text, m.x, m.y);
+    ctx.strokeStyle = "rgba(130,255,165,0.6)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(m.x, m.y - 5, 14, 0, Math.PI * 2);
+    ctx.stroke();
   }
 }
 
@@ -1203,6 +1314,7 @@ function update(dt) {
   updateEnemyBullets(dt);
   updateEnemies(dt);
   updatePowerups(dt);
+  updateMedkits(dt);
   updateEffects(dt);
 }
 
@@ -1211,6 +1323,7 @@ function draw() {
   drawBullets();
   for (const e of game.enemies) e.draw();
   drawPowerups();
+  drawMedkits();
   drawEffects();
   game.player.draw();
   drawCurseHint();
@@ -1247,6 +1360,7 @@ function resetGame() {
   game.playerBullets = [];
   game.enemyBullets = [];
   game.powerups = [];
+  game.medkits = [];
   game.effects = { rings: [], lines: [] };
   game.score = 0;
   game.time = 0;
@@ -1260,6 +1374,7 @@ function resetGame() {
   game.pendingPowerup = 0;
   game.firstPowerupGiven = false;
   game.curseActive = false;
+  game.medkitTimer = rand(30, 60);
   game.element = null;
   game.upgrades = { elementLv: 0, spread: 0, bounce: 0, damage: 0 };
   game.frenzy = { time: 0, rateMul: 1.4, dmgMul: 1.25, milestone: 0 };
@@ -1336,13 +1451,11 @@ upElement.addEventListener("touchstart", () => chooseUpgrade("element"), { passi
 upSpread.addEventListener("touchstart", () => chooseUpgrade("spread"), { passive: false });
 upBounce.addEventListener("touchstart", () => chooseUpgrade("bounce"), { passive: false });
 upDamage.addEventListener("touchstart", () => chooseUpgrade("damage"), { passive: false });
-upHeal.addEventListener("touchstart", () => chooseUpgrade("heal"), { passive: false });
 
 upElement.addEventListener("click", () => chooseUpgrade("element"));
 upSpread.addEventListener("click", () => chooseUpgrade("spread"));
 upBounce.addEventListener("click", () => chooseUpgrade("bounce"));
 upDamage.addEventListener("click", () => chooseUpgrade("damage"));
-upHeal.addEventListener("click", () => chooseUpgrade("heal"));
 
 restartBtn.addEventListener("touchstart", resetGame, { passive: false });
 restartBtn.addEventListener("click", resetGame);
